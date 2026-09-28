@@ -1,0 +1,118 @@
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const data = window.GOHEALTH_DATA || {};
+  const exchange = data.exchange || {};
+  const expiry = data.healthPointExpiry || {};
+  const format = (value) => Number(value || 0).toLocaleString('zh-TW');
+  const safe = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  let currentFilter = 'all';
+  let visibleCount = 10;
+
+  const records = [...(data.pointHistory || [])];
+  let currentBalance = exchange.healthPointBalance || 1200;
+  try {
+    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v1') || '{}');
+    const awards = state.pointAwards || [];
+    awards.forEach(item => records.push({ id: 'award-' + item.id, type: 'earn', title: item.title, occurredAt: item.date + ' 12:00', points: item.points, balanceAfter: null }));
+    currentBalance += awards.reduce((sum, item) => sum + Number(item.points || 0), 0);
+    const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
+    exchanges.filter(item => item.status === 'success').forEach(item => records.push({ ...item, type: 'use', title: '兌換 HAPPY GO 點數', occurredAt: item.requestedAt, points: -item.healthPointsUsed }));
+    if (exchanges.length) currentBalance -= exchanges.reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
+    else { const last = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null'); if (last?.status === 'success') currentBalance -= Number(last.healthPointsUsed || 0); }
+  } catch (_) {}
+  (data.exchangeHistory || []).filter(record => record.status === 'success').forEach(record => records.push({
+    ...record,
+    type: 'use',
+    title: '兌換 HAPPY GO 點數',
+    occurredAt: record.requestedAt,
+    points: -record.healthPointsUsed
+  }));
+  try {
+    const latest = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null');
+    if(latest?.id && !records.some(record => record.id === latest.id)) records.push({ ...latest, type:'use', title:'兌換 HAPPY GO 點數', occurredAt:latest.requestedAt, points:-latest.healthPointsUsed });
+  } catch (error) {}
+  const timestamp = value => new Date(String(value || '').replace(' ', 'T').replaceAll('/', '-')).getTime() || 0;
+  records.sort((a, b) => timestamp(b.occurredAt) - timestamp(a.occurredAt));
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  const recentRecords = records.filter(record => {
+    const parsed = new Date(String(record.occurredAt).replace(' ', 'T').replaceAll('/', '-'));
+    return Number.isNaN(parsed.getTime()) || parsed >= cutoff;
+  });
+  records.splice(0, records.length, ...recentRecords);
+  records.splice(100);
+
+  const meta = {
+    earn: { label:'累點', badge:'history-status-earned', icon:'fa-plus', iconClass:'bg-emerald-50 text-emerald-600' },
+    use: { label:'兌點', badge:'history-status-used', icon:'fa-arrow-right-arrow-left', iconClass:'bg-blue-50 text-blue-600' }
+  };
+
+  function filtered(){
+    if(currentFilter === 'earn') return records.filter(record => record.type === 'earn');
+    if(currentFilter === 'use') return records.filter(record => record.type === 'use');
+    return records;
+  }
+
+  function render(){
+    const list = filtered();
+    const shown = list.slice(0, visibleCount);
+    $('history-count').textContent = list.length ? `共 ${list.length} 筆紀錄，最新紀錄顯示於最上方` : '';
+    $('history-empty').classList.toggle('hidden', list.length > 0);
+    $('history-list').classList.toggle('hidden', list.length === 0);
+    $('history-load-more').classList.toggle('hidden', visibleCount >= list.length);
+    $('history-list').innerHTML = shown.map(record => {
+      const style = meta[record.type] || meta.use;
+      const amount = Number(record.points || 0);
+      const amountCopy = `${amount > 0 ? '+' : '−'}${format(Math.abs(amount))}`;
+      const amountClass = amount > 0 ? 'text-emerald-700' : 'text-blue-700';
+      const subline = record.type === 'earn' ? (record.expiresAt ? `效期至 ${safe(record.expiresAt)}` : '健康圈任務') : `兌換 ${format(record.happyGoPoints)} 點 HAPPY GO`;
+      return `<button class="history-card" type="button" onclick="openPointDetail('${safe(record.id)}')">
+        <div class="flex items-start justify-between gap-3"><h2 class="min-w-0 text-left font-black text-slate-800">${safe(record.title)}</h2><strong class="point-ledger-amount ${amountClass}">${amountCopy}</strong></div>
+        <div class="history-card-meta flex items-center justify-between gap-3 mt-1.5 text-slate-600 text-left"><span><time>${safe(String(record.occurredAt).split(' ')[0])}</time><span aria-hidden="true"> ・ </span>${subline}</span><i class="fa-solid fa-chevron-right text-emerald-700 shrink-0" aria-hidden="true"></i></div>
+      </button>`;
+    }).join('');
+  }
+
+  function row(label, value){ return value === null || value === undefined || value === '' ? '' : `<div class="exchange-summary-row"><span class="text-slate-600">${label}</span><strong class="text-right">${value}</strong></div>`; }
+
+  window.openPointDetail = function(id){
+    const record = records.find(item => item.id === id);
+    if(!record) return;
+    const style = meta[record.type] || meta.use;
+    const amount = Number(record.points || 0);
+    $('detail-icon').className = `w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${style.iconClass}`;
+    $('detail-icon').innerHTML = `<i class="fa-solid ${style.icon}"></i>`;
+    $('detail-title').textContent = record.title;
+    $('detail-type').textContent = style.label;
+    $('detail-type').className = `text-base mt-0.5 font-bold ${amount > 0 ? 'text-emerald-700' : amount < 0 ? 'text-blue-700' : 'text-amber-700'}`;
+    $('detail-content').innerHTML = [
+      row('日期時間', safe(record.occurredAt)),
+      row('健康點異動', amount === 0 ? '0 點（未扣點）' : `${amount > 0 ? '+' : '−'}${format(Math.abs(amount))} 點`),
+      row('兌換結果', record.happyGoPoints ? `${format(record.happyGoPoints)} 點 HAPPY GO` : null),
+      row('健康點效期', record.type === 'earn' ? safe(record.expiresAt) : null),
+      row('異動後餘額', record.balanceAfter == null ? null : `${format(record.balanceAfter)} 點`)
+    ].join('');
+    $('detail-note').textContent = '';
+    $('detail-note').classList.add('hidden');
+    $('history-detail-modal').classList.remove('hidden-view');
+    document.body.classList.add('modal-open');
+  };
+  window.closePointDetail = function(){ $('history-detail-modal').classList.add('hidden-view'); document.body.classList.remove('modal-open'); };
+  window.closeExpiryInfo = function(){ $('expiry-modal').classList.add('hidden-view'); document.body.classList.remove('modal-open'); };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    $('ledger-balance').textContent = format(currentBalance);
+    $('next-expiry-points').textContent = format(expiry.nextExpiryPoints || 0);
+    $('next-expiry-date').textContent = expiry.nextExpiryDate || '—';
+    $('expiry-rule').textContent = expiry.rule || '';
+    $('expiry-info').onclick = () => { $('expiry-modal').classList.remove('hidden-view'); document.body.classList.add('modal-open'); };
+    document.querySelectorAll('.history-filter').forEach(button => button.onclick = () => {
+      currentFilter = button.dataset.filter;
+      visibleCount = 10;
+      document.querySelectorAll('.history-filter').forEach(item => item.classList.toggle('active', item === button));
+      render();
+    });
+    $('history-load-more').onclick = () => { visibleCount += 10; render(); };
+    render();
+  });
+})();
