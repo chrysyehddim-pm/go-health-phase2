@@ -1,15 +1,11 @@
 (function () {
   'use strict';
-  const KEY = 'gohealth_p2_prototype_v1';
+  const KEY = 'gohealth_p2_prototype_v3';
   const dateAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); };
   const sampleGames = ['眼力極限考驗', '生活好時光', '24H 一日店長', '家事達人', '健康小學堂', '幸福柑仔店'];
   const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : i % sampleGames.length === 4 ? 50 : 100, kind: '個人任務' }));
   const fresh = () => ({
-    records: [
-      { id: 'r1', type: 'steps', value: 6240, date: dateAgo(0), source: '手機健康資料' },
-      { id: 'r2', type: 'sleep', value: 7.2, date: dateAgo(0), source: '手機健康資料' },
-      { id: 'r3', type: 'weight', value: 62.4, date: dateAgo(2), source: '手動紀錄' }
-    ],
+    records: [],
     diaries: [],
     moods: [],
     device: 'disconnected',
@@ -33,6 +29,11 @@
   let state;
   try { state = Object.assign(fresh(), JSON.parse(sessionStorage.getItem(KEY) || '{}')); }
   catch (_) { state = fresh(); }
+  const healthTypes = ['steps','sleep','heart','exercise','weight'];
+  if (!Array.isArray(state.healthPreferences)) {
+    state.healthPreferences = state.device === 'connected' ? [...new Set(['steps', ...state.records.map(r => r.type)])].filter(t => healthTypes.includes(t)) : [];
+  }
+  state.healthSchema = 'happygo-health-v2';
   state.gameHistory ||= sampleHistory();
   state.notifications ||= fresh().notifications;
   state.pointAwards ||= [];
@@ -40,15 +41,63 @@
   if (!Object.hasOwn(state, 'group')) state.group = null;
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} };
-  const set = updater => { updater(state); save(); document.dispatchEvent(new CustomEvent('gh:state')); };
+  const set = updater => { updater(state); rememberTaskCompletions(); save(); document.dispatchEvent(new CustomEvent('gh:state')); };
   const format = value => Number(value || 0).toLocaleString('zh-TW');
   const navItems = [
     ['index.html', '首頁', 'fa-house'],
+    ['health.html', '紀錄', 'fa-chart-line'],
     ['group.html', '健康圈', 'fa-users'],
     ['activities.html', '任務', 'fa-list-check'],
-    ['health.html', '紀錄', 'fa-chart-line'],
     ['explore.html', '探索', 'fa-compass']
   ];
+  function scene(name) {
+    const app = document.getElementById('app-root');
+    const main = document.getElementById('p2-main');
+    if (!app || !main) return;
+    app.classList.add('p2-scene-app');
+    let hero = document.getElementById('p2-scene');
+    if (!hero) {
+      hero = document.createElement('div');
+      hero.id = 'p2-scene';
+      hero.className = 'p2-scene';
+      app.insertBefore(hero, main);
+      // The scroll viewport never changes size. The spacer scrolls away so the
+      // sheet covers the hero without feeding scroll position back into layout.
+      main.addEventListener('scroll', () => {
+        const spacer = main.querySelector('.p2-scene-spacer');
+        app.classList.toggle('p2-scene-collapsed', main.scrollTop >= (spacer?.offsetHeight || 1));
+      }, { passive: true });
+    }
+    hero.dataset.scene = name;
+    if (!hero.querySelector('img') || hero.querySelector('img').dataset.name !== name) {
+      hero.innerHTML = '<img data-name="' + name + '" src="images/scene/' + name + '.webp" alt="" fetchpriority="high">';
+    }
+    const greeting = main.querySelector('.p2-home-top');
+    if (greeting) {
+      hero.querySelector('.p2-home-top')?.remove();
+      hero.appendChild(greeting);
+    }
+    if (!main.querySelector(':scope > .p2-sheet-content')) {
+      const content = document.createElement('div');
+      content.className = 'p2-sheet-content';
+      while (main.firstChild) content.appendChild(main.firstChild);
+      const spacer = document.createElement('div');
+      spacer.className = 'p2-scene-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
+      main.append(spacer, content);
+    }
+  }
+  function taskCard(task, options = {}) {
+    const count = options.count || 0;
+    const href = options.href;
+    const tag = href ? 'a' : 'article';
+    const image = 'images/scene/' + (task.image || 'task-walk') + '.webp';
+    return '<' + tag + ' class="p2-task-card p2-art-card ' + (href ? 'p2-illustrated-task' : '') + '"' + (href ? ' href="' + escape(href) + '"' : '') + '>' +
+      '<div class="p2-card-art" aria-hidden="true"><img src="' + image + '" alt="" loading="lazy"></div>' +
+      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p></div>' +
+      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? '已達成 ' + count + '／' + task.members + ' 人' : '加入健康圈完成任務') + '</span>' +
+      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + (options.claimed ? '查看成果' : '查看任務') + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div></' + tag + '>';
+  }
   function shell(active, title) {
     const header = document.getElementById('p2-header');
     const nav = document.getElementById('p2-nav');
@@ -57,7 +106,7 @@
       document.body.classList.add('p2-large');
     }
     if (nav) nav.innerHTML = '<nav class="bottom-nav p2-bottom-nav" aria-label="主要導覽">' + navItems.map(item =>
-      '<a class="nav-btn ' + (active === item[1] ? 'active' : '') + '" ' + (active === item[1] ? 'aria-current="page"' : '') + ' href="' + item[0] + '"><i class="fa-solid ' + item[2] + '" aria-hidden="true"></i><span>' + item[1] + '</span></a>'
+      '<a class="nav-btn ' + (active === item[1] ? 'active ' : '') + (item[1] === '健康圈' ? 'p2-nav-circle' : '') + '" ' + (active === item[1] ? 'aria-current="page"' : '') + ' href="' + item[0] + '"><i class="fa-solid ' + item[2] + '" aria-hidden="true"></i><span>' + item[1] + '</span></a>'
     ).join('') + '</nav>';
     document.title = title + '｜GO HEALTH';
   }
@@ -88,6 +137,7 @@
     document.getElementById('p2-sheet-title').textContent = title;
     document.getElementById('p2-sheet-body').innerHTML = html;
     overlay.classList.add('open');
+    overlay.querySelector('.p2-sheet').scrollTop = 0;
     document.body.classList.add('modal-open');
     overlay.querySelector('[data-close-sheet]').focus();
     return overlay;
@@ -97,8 +147,54 @@
     if (overlay) overlay.classList.remove('open');
     document.body.classList.remove('modal-open');
   }
+  function rememberTaskCompletions() {
+    if (!state.group || state.device !== 'connected' || !window.GH_DEMO) return;
+    const cutoff = dateAgo(6);
+    const has = (type,min) => state.records.some(r => r.type === type && r.value >= min && r.date >= cutoff && /裝置|手機/.test(r.source));
+    window.GH_DEMO.tasks.forEach(t => {
+      const self = t.type === 'both' ? has('steps',6000) && has('exercise',15) : has(t.type,t.min);
+      const others = state.group.members.filter(m => m.name !== '我').filter(m => t.type === 'both' ? m.steps >= 6000 && m.exercise >= 15 : (m[t.type] || 0) >= t.min).length;
+      if (!self || others + 1 < t.members) return;
+      const found = state.activityHistory.find(x => (x.taskId === t.id || (!x.taskId && x.title === t.title)) && (!x.groupName || x.groupName === state.group.name));
+      if (found) { found.taskId = t.id; found.groupName ||= state.group.name; found.status = state.taskClaims.includes(t.id) ? 'claimed' : (found.status || 'pending'); }
+      else state.activityHistory.unshift({taskId:t.id,groupName:state.group.name,title:t.title,date:dateAgo(0),points:t.points,kind:'健康圈任務',status:state.taskClaims.includes(t.id)?'claimed':'pending'});
+    });
+  }
+  let healthSyncRun = 0;
+  function cancelHealthSync() { healthSyncRun++; }
+  function art(name, cls = '') {
+    return '<img class="p2-object-art ' + cls + '" src="images/scene/icon-' + escape(name) + '.webp" alt="" aria-hidden="true" loading="lazy">';
+  }
+  // Prototype adapter. Replace with the confirmed HAPPY GO native bridge contract.
+  // Permission requests remain in the host App; this page never calls HealthKit directly.
+  async function syncHealthData() {
+    const run = ++healthSyncRun;
+    const requested = [...state.healthPreferences];
+    set(s => { s.healthSync = 'syncing'; });
+    try {
+      let payload;
+      if (window.HappyGoHealthBridge?.readHealthData) payload = await window.HappyGoHealthBridge.readHealthData({types:requested});
+      else if (window.HappyGoHealthBridge?.readSteps && requested.includes('steps')) payload = await window.HappyGoHealthBridge.readSteps();
+      else if (window.HappyGoHealthBridge) throw Error('Unsupported bridge');
+      else payload = await new Promise(resolve => setTimeout(() => resolve({records:requested.includes('steps') ? Array.from({length:7},(_,i)=>({type:'steps',value:6200+i*240,date:dateAgo(6-i)})) : []}),650));
+      if (run !== healthSyncRun) return null;
+      if (!payload || !Array.isArray(payload.records)) throw Error('Invalid bridge payload');
+      const rows = payload.records.filter(r => requested.includes(r.type) && Number.isFinite(Number(r.value)) && Number(r.value) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+      set(s => {
+        s.records = rows.map(r=>({id:r.type+'-'+r.date,type:r.type,value:Number(r.value),date:r.date,source:'HAPPY GO App · 手機健康資料'}));
+        s.device = 'connected'; s.healthSource = 'HAPPY GO App';
+        s.healthUpdatedAt = new Date().toISOString(); s.healthSync = 'ready';
+      });
+      return true;
+    } catch (_) {
+      if (run !== healthSyncRun) return null;
+      set(s => { s.healthSync = 'error'; });
+      return false;
+    }
+  }
   function latest(type) {
-    return state.records.filter(r => r.type === type).sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+    if (state.device !== 'connected' || !state.healthPreferences.includes(type)) return null;
+    return state.records.filter(r=>r.type===type).sort((a,b)=>b.date.localeCompare(a.date))[0] || null;
   }
   function metric(type) {
     const names = { steps: '步數', exercise: '運動', sleep: '睡眠', heart: '心率', weight: '體重' };
@@ -123,5 +219,5 @@
     return 1200 + earned - used;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
-  window.GH = { state, fresh, set, save, escape, format, shell, toast, sheet, closeSheet, latest, metric, articleCategory, pointBalance, KEY };
+  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, KEY };
 })();

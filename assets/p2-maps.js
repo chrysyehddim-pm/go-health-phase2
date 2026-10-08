@@ -4,7 +4,7 @@
   function loadScript() {
     if (loading) return loading;
     const key = window.GOHEALTH_MAPS_API_KEY;
-    if (!key) return Promise.reject(new Error('尚未設定地圖金鑰，以下顯示示意地點'));
+    if (!key) return Promise.reject(new Error('地圖服務暫時無法使用'));
     loading = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       const callbackName = '__gohealthMapsReady';

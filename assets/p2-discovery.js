@@ -5,11 +5,11 @@
   const main = () => document.getElementById('p2-main');
   const icon = name => '<span class="p2-icon blue"><i class="fa-solid ' + name + '"></i></span>';
   function renderAI() {
-    GH.shell('', '我的健康提醒');
+    GH.shell('首頁', '我的健康提醒');
     const steps = GH.latest('steps'); const sleep = GH.latest('sleep');
     const mood = GH.state.moods.at(-1);
     const suggestion = steps && steps.value < 7000 ? '最近的步數是 ' + GH.format(steps.value) + ' 步。找個舒服的時段走一小段路，讓活動融入日常。' : '持續用自己喜歡的方式活動，也別忘了留時間休息。';
-    main().innerHTML = '<section><a class="p2-text-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> 返回首頁</a><p class="p2-eyebrow" style="margin-top:18px">今天的健康提醒</p><h1 class="p2-page-title">照顧自己，從一件小事開始</h1><p class="p2-lead">根據你最近的紀錄，整理今天可以試試的方向。</p></section><section class="p2-card tint p2-feature"><span class="p2-feature-icon"><i class="fa-solid fa-lightbulb"></i></span><div><h2>今天可以這樣做</h2><p>' + suggestion + '</p></div><a class="p2-primary" href="explore.html?tab=places">找個地方走走</a></section><section class="p2-card"><div class="p2-section-head"><h2>最近的健康摘要</h2></div><div class="p2-summary-list"><div><span>步數</span><strong>' + (steps ? GH.format(steps.value) + ' 步' : '尚無紀錄') + '</strong></div><div><span>睡眠</span><strong>' + (sleep ? sleep.value + ' 小時' : '尚無紀錄') + '</strong></div><div><span>心情</span><strong>' + (mood ? esc(mood.value) : '尚無紀錄') + '</strong></div></div><a class="p2-secondary" href="health.html">查看完整紀錄</a></section><section class="p2-privacy"><i class="fa-solid fa-circle-info"></i><span>以上內容提供日常健康參考；有健康疑慮時，請向醫療專業人員諮詢。</span></section>';
+    main().innerHTML = '<section><a class="p2-text-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> 返回首頁</a><p class="p2-eyebrow" style="margin-top:18px">今天的健康提醒</p><h1 class="p2-page-title">照顧自己，從一件小事開始</h1><p class="p2-lead">' + (steps ? '根據你授權的活動紀錄，整理今天可以試試的方向。' : '連接健康資料後，可查看個人活動提醒。現在先從輕鬆散步開始。') + '</p></section><section class="p2-card tint p2-feature"><span class="p2-feature-icon"><i class="fa-solid fa-lightbulb"></i></span><div><h2>今天可以這樣做</h2><p>' + suggestion + '</p></div><a class="p2-primary" href="explore.html?tab=places">找個地方走走</a></section><section class="p2-card"><div class="p2-section-head"><h2>最近的健康摘要</h2></div><div class="p2-summary-list"><div><span>步數</span><strong>' + (steps ? GH.format(steps.value) + ' 步' : '尚無紀錄') + '</strong></div><div><span>睡眠</span><strong>' + (sleep ? sleep.value + ' 小時' : '尚無紀錄') + '</strong></div><div><span>心情</span><strong>' + (mood ? esc(mood.value) : '尚無紀錄') + '</strong></div></div><a class="p2-secondary" href="health.html">查看完整紀錄</a></section><section class="p2-privacy"><i class="fa-solid fa-circle-info"></i><span>以上內容提供日常健康參考；有健康疑慮時，請向醫療專業人員諮詢。</span></section>';
   }
   function recommendScore(a) {
     const tags = (a.tags || []).join(' ');
@@ -26,10 +26,13 @@
   }
   function renderExplore() {
     GH.shell('探索', '探索');
-    const tab = new URLSearchParams(location.search).get('tab') === 'places' ? 'places' : 'articles';
+    const tab = new URLSearchParams(location.search).get('tab') === 'articles' ? 'articles' : 'places';
     main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">探索</h1><p class="p2-lead">讀一篇健康文章，或找個地方出門走走。</p></section><section><div class="p2-segment" role="tablist"><button data-tab="articles" class="' + (tab === 'articles' ? 'active' : '') + '">健康文章</button><button data-tab="places" class="' + (tab === 'places' ? 'active' : '') + '">附近去處</button></div></section><section id="p2-discovery-panel"></section>';
     document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { history.replaceState(null, '', 'explore.html?tab=' + b.dataset.tab); document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === b)); if (b.dataset.tab === 'places') renderPlaces(); else renderArticles(); });
     if (tab === 'places') renderPlaces(); else renderArticles();
+    const tabs = document.querySelector('.p2-segment');
+    tabs.insertBefore(tabs.querySelector('[data-tab=places]'), tabs.firstElementChild);
+    GH.scene('explore');
   }
   function renderArticles() {
     const articles = window.GH_ARTICLES || [];
@@ -44,7 +47,7 @@
       document.getElementById('p2-article-filters').innerHTML = cats.map(c => '<button data-cat="' + c + '" class="' + (c === cat ? 'active' : '') + '">' + c + '</button>').join('');
       const base = cat === '推薦' ? recommended : articles.filter(a => cat === '全部' || GH.articleCategory(a) === cat);
       const found = base.filter(a => !query || [a.title, a.department, ...(a.tags || [])].join(' ').toLowerCase().includes(query));
-      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map(a => '<a class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + icon('fa-book-medical') + '<span><strong>' + esc(a.title) + '</strong><small>' + esc(a.department) + ' · ' + esc(a.date) + '</small></span>' + (recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
+      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map(a => '<a class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + GH.art(({ '動腦與記憶':'brain', '心情與睡眠':'sleep', '活動與身體':'exercise', '心血管與健康知識':'heart' })[GH.articleCategory(a)] || 'heart') + '<span><strong>' + esc(a.title) + '</strong><small>' + esc(a.department) + ' · ' + esc(a.date) + '</small>' + (recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</span></a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
       document.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { cat = b.dataset.cat; shown = 10; draw(); });
       const more = document.getElementById('p2-more-articles'); if (more) more.onclick = () => { shown += 10; draw(); };
     };
@@ -86,11 +89,25 @@
     };
   }
   function renderArticle() {
-    GH.shell('', '健康文章');
+    GH.shell('探索', '健康文章');
     const a = (window.GH_ARTICLES || []).find(x => String(x.id) === new URLSearchParams(location.search).get('id'));
     if (!a) { main().innerHTML = '<div class="p2-empty"><h1>找不到文章</h1><a class="p2-primary" href="explore.html">返回探索</a></div>'; return; }
     const saved = GH.state.articleSaved.includes(a.id);
     main().innerHTML = '<section><a class="p2-text-link" href="explore.html"><i class="fa-solid fa-arrow-left"></i> 返回探索</a><p class="p2-eyebrow" style="margin-top:18px">' + esc(GH.articleCategory(a)) + '</p><h1 class="p2-page-title">' + esc(a.title) + '</h1><p class="p2-article-meta">' + esc(a.department) + ' · ' + esc(a.author) + ' · ' + esc(a.issue || a.date) + '</p></section><section class="p2-card blue"><span class="p2-badge blue">GO HEALTH 閱讀重點</span><p class="p2-article-summary">' + esc(a.summary) + '</p></section><section class="p2-card"><h2>閱讀完整文章</h2><p class="p2-small p2-muted">前往亞東醫院網站，閱讀完整內容。</p><div class="p2-actions"><a class="p2-primary" href="' + esc(a.url) + '" target="_blank" rel="noopener noreferrer">閱讀院方文章 <i class="fa-solid fa-arrow-up-right-from-square"></i></a><button id="p2-save-article" class="p2-secondary">' + (saved ? '取消收藏' : '收藏文章') + '</button></div></section><section class="p2-privacy"><i class="fa-solid fa-circle-info"></i><span>健康知識不能取代醫師診療；如有不適，請諮詢醫療專業人員。</span></section>';
+    const shareButton = document.createElement('button');
+    shareButton.id = 'p2-share-article';
+    shareButton.className = 'p2-secondary';
+    shareButton.textContent = '分享給健康圈';
+    document.getElementById('p2-save-article').after(shareButton);
+    shareButton.onclick = () => {
+      if (!GH.state.group) return GH.sheet('加入健康圈', '<p>加入健康圈後，就能分享文章，一起交流健康生活。</p><a class="p2-primary full" href="group.html">前往健康圈</a>');
+      GH.sheet('分享健康文章', '<form id="p2-article-share-form" class="p2-form"><p>' + esc(a.title) + '</p><label>想說的話（選填）<textarea name="note" maxlength="200" placeholder="這篇文章讓你想到什麼？"></textarea></label><button class="p2-primary full">分享給健康圈</button></form>');
+      document.getElementById('p2-article-share-form').onsubmit = e => {
+        e.preventDefault(); const note = String(new FormData(e.target).get('note')).trim();
+        GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), kind: '文章分享', text: (note ? note + '\n' : '') + a.title, url: a.url, comments: [], likes: 0 }));
+        GH.closeSheet(); GH.toast('已分享至健康圈');
+      };
+    };
     document.getElementById('p2-save-article').onclick = () => { GH.set(s => { s.articleSaved = saved ? s.articleSaved.filter(id => id !== a.id) : [...s.articleSaved, a.id]; }); renderArticle(); GH.toast(saved ? '已取消收藏' : '已收藏文章'); };
   }
   document.addEventListener('DOMContentLoaded', () => { const page = document.body.dataset.page; if (page === 'explore') renderExplore(); else if (page === 'article') renderArticle(); else if (page === 'ai') renderAI(); });
