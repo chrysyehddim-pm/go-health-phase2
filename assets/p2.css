@@ -487,3 +487,46 @@ button:disabled { opacity:.6; cursor:wait; }
 .p2-mood-choice:focus-within { outline:3px solid #b27629; outline-offset:3px; }
 .p2-journal-mood { display:flex; align-items:center; gap:8px; color:#245d45; font-size:18px; font-weight:700; }
 .p2-journal-mood .p2-object-art { width:52px; height:52px; }
+
+/* Confirmed information hierarchy and separation, 2026-10-08. */
+.p2-sheet-content { border:0; box-shadow:none; isolation:isolate; }
+.p2-home-circle .p2-circle-preview { padding:16px; background:#fffaf0; border:1px solid #e4d7c3; margin-bottom:16px; }
+.p2-home-circle .p2-circle-preview img { height:110px; }
+.p2-home-circle .p2-art-card { margin-top:16px; }
+.p2-sync-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; background:#f3f7ee; border-radius:16px; }
+.p2-sync-toolbar p { margin:0; font-size:16px; flex:1; }
+.p2-sync-toolbar button { flex:none; font-size:18px; }
+.p2-task-history-entry { display:flex; justify-content:flex-end; }
+.p2-task-history-entry button { padding:8px 0; font-size:18px; }
+.p2-monthly-footprints { padding:16px; border:1px solid #e7ddcb; border-radius:20px; background:#fffaf0; margin:20px 0; }
+.p2-monthly-footprints .p2-milestones { gap:8px; }
+.p2-monthly-footprints .p2-milestones small { font-size:15px; }
+.p2-article-card { display:block; text-align:left; width:100%; }
+.p2-article-card > span { display:block; }
+.p2-quick-care { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.p2-quick-care button { border:1px solid #c4ddd0; border-radius:14px; padding:10px 12px; background:#f1f8f1; color:#235444; font-size:17px; }
+.p2-shared-mood { display:flex; align-items:center; gap:16px; padding:12px; margin:12px 0; border-radius:18px; background:#fff8ea; }
+.p2-shared-mood img { width:84px; height:84px; }
+.p2-mood-save-option { display:flex; align-items:center; gap:8px; }
+.p2-mood-save-option input { width:22px; height:22px; }
+.p2-compose-actions { flex-wrap:wrap; }
+
+.p2-task-title-row { align-items:center; }
+.p2-task-title-row .p2-text-button { white-space:nowrap; flex:none; padding:8px 0; font-size:17px; }
+
+/* The thin rounded outline remains above content without covering it with a bar. */
+.p2-sheet-frame { position:absolute; inset:20svh 0 0; z-index:4; border:2px solid #fff; border-bottom:0; border-radius:38px 38px 0 0; background:transparent; box-shadow:0 -4px 18px #40392c30; pointer-events:none; }
+.p2-group-setting-actions { display:flex; flex-direction:column; gap:16px; margin-top:20px; }
+.p2-group-setting-actions .p2-quiet { width:100%; min-height:48px; color:#737b76; }
+.p2-brain-back { display:inline-flex; align-items:center; gap:8px; min-height:44px; margin-bottom:16px; font-size:18px; }
+
+/* Shared primary segmented control: records, tasks and explore. */
+.p2-primary-tabs { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px; padding:4px; border:0; border-radius:14px; background:#e9f0f1; overflow:visible; }
+.p2-large .p2-primary-tabs > a,.p2-large .p2-primary-tabs > button { display:flex; flex-direction:row; align-items:center; justify-content:center; gap:0; min-width:0; height:52px; min-height:52px; padding:8px 6px; margin:0; border:0; border-radius:11px; background:transparent; color:#6a7e88; font-size:18px; line-height:1.4; font-weight:800; text-align:center; text-decoration:none; box-shadow:none; white-space:nowrap; }
+.p2-large .p2-primary-tabs > .active { background:#fff; color:#147a50; box-shadow:0 1px 5px #1837301a; }
+.p2-task-categories.p2-primary-tabs { margin-bottom:22px; }
+.p2-circle-settings { margin-top:0; }
+.p2-setting-readonly { padding:16px; border-radius:16px; background:#f4f7f5; }
+.p2-setting-readonly strong { font-size:18px; }
+.p2-setting-readonly p { margin:6px 0; font-size:20px; font-weight:700; }
+.p2-setting-readonly small { color:#647987; font-size:16px; }

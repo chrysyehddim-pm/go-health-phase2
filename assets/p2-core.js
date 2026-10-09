@@ -39,6 +39,10 @@
   state.pointAwards ||= [];
   state.taskClaims ||= [];
   if (!Object.hasOwn(state, 'group')) state.group = null;
+  if (state.group) {
+    state.group.id ||= 'circle-' + crypto.randomUUID();
+    state.activityHistory.filter(x=>!x.groupId&&x.groupName===state.group.name).forEach(x=>x.groupId=state.group.id);
+  }
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} };
   const set = updater => { updater(state); rememberTaskCompletions(); save(); document.dispatchEvent(new CustomEvent('gh:state')); };
@@ -66,6 +70,7 @@
       main.addEventListener('scroll', () => {
         const spacer = main.querySelector('.p2-scene-spacer');
         app.classList.toggle('p2-scene-collapsed', main.scrollTop >= (spacer?.offsetHeight || 1));
+        positionSheetFrame();
       }, { passive: true });
     }
     hero.dataset.scene = name;
@@ -85,6 +90,24 @@
       spacer.className = 'p2-scene-spacer';
       spacer.setAttribute('aria-hidden', 'true');
       main.append(spacer, content);
+    }
+    let frame = document.getElementById('p2-sheet-frame');
+    if (!frame) {
+      frame = document.createElement('div');
+      frame.id = 'p2-sheet-frame';
+      frame.className = 'p2-sheet-frame';
+      frame.setAttribute('aria-hidden', 'true');
+      app.appendChild(frame);
+      window.addEventListener('resize', positionSheetFrame);
+    }
+    positionSheetFrame();
+    function positionSheetFrame() {
+      const frame = document.getElementById('p2-sheet-frame');
+      if (!frame) return;
+      const spacer = main.querySelector('.p2-scene-spacer');
+      const offset = Math.max(0, (spacer?.offsetHeight || 0) - main.scrollTop);
+      // Move only the decorative outline; the scroll viewport stays fixed.
+      frame.style.transform = 'translateY(' + offset + 'px)';
     }
   }
   function taskCard(task, options = {}) {
@@ -155,9 +178,9 @@
       const self = t.type === 'both' ? has('steps',6000) && has('exercise',15) : has(t.type,t.min);
       const others = state.group.members.filter(m => m.name !== '我').filter(m => t.type === 'both' ? m.steps >= 6000 && m.exercise >= 15 : (m[t.type] || 0) >= t.min).length;
       if (!self || others + 1 < t.members) return;
-      const found = state.activityHistory.find(x => (x.taskId === t.id || (!x.taskId && x.title === t.title)) && (!x.groupName || x.groupName === state.group.name));
-      if (found) { found.taskId = t.id; found.groupName ||= state.group.name; found.status = state.taskClaims.includes(t.id) ? 'claimed' : (found.status || 'pending'); }
-      else state.activityHistory.unshift({taskId:t.id,groupName:state.group.name,title:t.title,date:dateAgo(0),points:t.points,kind:'健康圈任務',status:state.taskClaims.includes(t.id)?'claimed':'pending'});
+      const found = state.activityHistory.find(x => (x.taskId === t.id || (!x.taskId && x.title === t.title)) && (x.groupId === state.group.id || (!x.groupId && (!x.groupName || x.groupName === state.group.name))));
+      if (found) { found.taskId = t.id; found.groupId = state.group.id; found.groupName ||= state.group.name; found.status = state.taskClaims.includes(t.id) ? 'claimed' : (found.status || 'pending'); }
+      else state.activityHistory.unshift({taskId:t.id,groupId:state.group.id,groupName:state.group.name,title:t.title,date:dateAgo(0),points:t.points,kind:'健康圈任務',status:state.taskClaims.includes(t.id)?'claimed':'pending'});
     });
   }
   let healthSyncRun = 0;
@@ -167,6 +190,16 @@
   }
   // Prototype adapter. Replace with the confirmed HAPPY GO native bridge contract.
   // Permission requests remain in the host App; this page never calls HealthKit directly.
+  // Fixed local demonstration values; native bridge responses always take precedence.
+  function demoHealthRecords(requested) {
+    const series={steps:[6200,7100,6800,8200,7600,6500,7840],sleep:[7.2,6.8,7.5,7.1,6.9,7.6,7.3],heart:[72,70,74,71,69,73,72],exercise:[20,15,30,25,18,35,22]};
+    const records=[];
+    requested.forEach(type=>{
+      if(type==='weight') [28,21,14,7,1].forEach((days,i)=>records.push({type,value:[65.4,65.2,65.3,65.1,65][i],date:dateAgo(days)}));
+      else if(series[type])for(let days=29;days>=0;days--)records.push({type,value:series[type][(29-days)%7],date:dateAgo(days)});
+    });
+    return records;
+  }
   async function syncHealthData() {
     const run = ++healthSyncRun;
     const requested = [...state.healthPreferences];
@@ -176,7 +209,7 @@
       if (window.HappyGoHealthBridge?.readHealthData) payload = await window.HappyGoHealthBridge.readHealthData({types:requested});
       else if (window.HappyGoHealthBridge?.readSteps && requested.includes('steps')) payload = await window.HappyGoHealthBridge.readSteps();
       else if (window.HappyGoHealthBridge) throw Error('Unsupported bridge');
-      else payload = await new Promise(resolve => setTimeout(() => resolve({records:requested.includes('steps') ? Array.from({length:7},(_,i)=>({type:'steps',value:6200+i*240,date:dateAgo(6-i)})) : []}),650));
+      else payload = await new Promise(resolve => setTimeout(() => resolve({records:demoHealthRecords(requested)}),650));
       if (run !== healthSyncRun) return null;
       if (!payload || !Array.isArray(payload.records)) throw Error('Invalid bridge payload');
       const rows = payload.records.filter(r => requested.includes(r.type) && Number.isFinite(Number(r.value)) && Number(r.value) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date));

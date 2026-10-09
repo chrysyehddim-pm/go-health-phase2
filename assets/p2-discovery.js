@@ -27,8 +27,8 @@
   function renderExplore() {
     GH.shell('探索', '探索');
     const tab = new URLSearchParams(location.search).get('tab') === 'articles' ? 'articles' : 'places';
-    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">探索</h1><p class="p2-lead">讀一篇健康文章，或找個地方出門走走。</p></section><section><div class="p2-segment" role="tablist"><button data-tab="articles" class="' + (tab === 'articles' ? 'active' : '') + '">健康文章</button><button data-tab="places" class="' + (tab === 'places' ? 'active' : '') + '">附近去處</button></div></section><section id="p2-discovery-panel"></section>';
-    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { history.replaceState(null, '', 'explore.html?tab=' + b.dataset.tab); document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === b)); if (b.dataset.tab === 'places') renderPlaces(); else renderArticles(); });
+    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">探索</h1><p class="p2-lead">讀一篇健康文章，或找個地方出門走走。</p></section><section><div class="p2-segment p2-primary-tabs" role="tablist" aria-label="探索分類"><button role="tab" aria-selected="' + (tab === 'articles') + '" data-tab="articles" class="' + (tab === 'articles' ? 'active' : '') + '">健康文章</button><button role="tab" aria-selected="' + (tab === 'places') + '" data-tab="places" class="' + (tab === 'places' ? 'active' : '') + '">附近去處</button></div></section><section id="p2-discovery-panel"></section>';
+    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { history.replaceState(null, '', 'explore.html?tab=' + b.dataset.tab); document.querySelectorAll('[data-tab]').forEach(x => {x.classList.toggle('active', x === b);x.setAttribute('aria-selected',String(x===b));}); if (b.dataset.tab === 'places') renderPlaces(); else renderArticles(); });
     if (tab === 'places') renderPlaces(); else renderArticles();
     const tabs = document.querySelector('.p2-segment');
     tabs.insertBefore(tabs.querySelector('[data-tab=places]'), tabs.firstElementChild);
@@ -47,8 +47,9 @@
       document.getElementById('p2-article-filters').innerHTML = cats.map(c => '<button data-cat="' + c + '" class="' + (c === cat ? 'active' : '') + '">' + c + '</button>').join('');
       const base = cat === '推薦' ? recommended : articles.filter(a => cat === '全部' || GH.articleCategory(a) === cat);
       const found = base.filter(a => !query || [a.title, a.department, ...(a.tags || [])].join(' ').toLowerCase().includes(query));
-      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map(a => '<a class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + GH.art(({ '動腦與記憶':'brain', '心情與睡眠':'sleep', '活動與身體':'exercise', '心血管與健康知識':'heart' })[GH.articleCategory(a)] || 'heart') + '<span><strong>' + esc(a.title) + '</strong><small>' + esc(a.department) + ' · ' + esc(a.date) + '</small>' + (recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</span></a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
+      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map(a => '<a data-article="' + esc(a.id) + '" class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + '<span><strong>' + esc(a.title) + '</strong><small>' + esc(a.department) + ' · ' + esc(a.date) + '</small>' + (recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</span></a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
       document.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { cat = b.dataset.cat; shown = 10; draw(); });
+      panel.querySelectorAll('[data-article]').forEach(b=>b.onclick=e=>{e.preventDefault();articlePopup(articles.find(a=>String(a.id)===b.dataset.article));});
       const more = document.getElementById('p2-more-articles'); if (more) more.onclick = () => { shown += 10; draw(); };
     };
     document.getElementById('p2-article-search').oninput = e => { query = e.target.value.trim().toLowerCase(); shown = 10; draw(); };
@@ -88,27 +89,20 @@
       document.getElementById('p2-place-share-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('note')).trim(); if (!text) return; GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), kind: '地點分享', text, place: place.name, url: place.url, comments: [], likes: 0 })); GH.closeSheet(); GH.toast('已分享至健康圈'); };
     };
   }
-  function renderArticle() {
-    GH.shell('探索', '健康文章');
-    const a = (window.GH_ARTICLES || []).find(x => String(x.id) === new URLSearchParams(location.search).get('id'));
-    if (!a) { main().innerHTML = '<div class="p2-empty"><h1>找不到文章</h1><a class="p2-primary" href="explore.html">返回探索</a></div>'; return; }
-    const saved = GH.state.articleSaved.includes(a.id);
-    main().innerHTML = '<section><a class="p2-text-link" href="explore.html"><i class="fa-solid fa-arrow-left"></i> 返回探索</a><p class="p2-eyebrow" style="margin-top:18px">' + esc(GH.articleCategory(a)) + '</p><h1 class="p2-page-title">' + esc(a.title) + '</h1><p class="p2-article-meta">' + esc(a.department) + ' · ' + esc(a.author) + ' · ' + esc(a.issue || a.date) + '</p></section><section class="p2-card blue"><span class="p2-badge blue">GO HEALTH 閱讀重點</span><p class="p2-article-summary">' + esc(a.summary) + '</p></section><section class="p2-card"><h2>閱讀完整文章</h2><p class="p2-small p2-muted">前往亞東醫院網站，閱讀完整內容。</p><div class="p2-actions"><a class="p2-primary" href="' + esc(a.url) + '" target="_blank" rel="noopener noreferrer">閱讀院方文章 <i class="fa-solid fa-arrow-up-right-from-square"></i></a><button id="p2-save-article" class="p2-secondary">' + (saved ? '取消收藏' : '收藏文章') + '</button></div></section><section class="p2-privacy"><i class="fa-solid fa-circle-info"></i><span>健康知識不能取代醫師診療；如有不適，請諮詢醫療專業人員。</span></section>';
-    const shareButton = document.createElement('button');
-    shareButton.id = 'p2-share-article';
-    shareButton.className = 'p2-secondary';
-    shareButton.textContent = '分享給健康圈';
-    document.getElementById('p2-save-article').after(shareButton);
-    shareButton.onclick = () => {
-      if (!GH.state.group) return GH.sheet('加入健康圈', '<p>加入健康圈後，就能分享文章，一起交流健康生活。</p><a class="p2-primary full" href="group.html">前往健康圈</a>');
-      GH.sheet('分享健康文章', '<form id="p2-article-share-form" class="p2-form"><p>' + esc(a.title) + '</p><label>想說的話（選填）<textarea name="note" maxlength="200" placeholder="這篇文章讓你想到什麼？"></textarea></label><button class="p2-primary full">分享給健康圈</button></form>');
-      document.getElementById('p2-article-share-form').onsubmit = e => {
-        e.preventDefault(); const note = String(new FormData(e.target).get('note')).trim();
-        GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), kind: '文章分享', text: (note ? note + '\n' : '') + a.title, url: a.url, comments: [], likes: 0 }));
-        GH.closeSheet(); GH.toast('已分享至健康圈');
-      };
+  function articlePopup(a) {
+    if(!a)return;
+    GH.sheet(a.title,'<p class="p2-article-meta">亞東醫院 · '+esc(a.department)+'</p><p>'+esc(a.summary || '前往亞東醫院閱讀這篇健康文章，了解相關健康知識。')+'</p><div class="p2-actions"><a class="p2-primary" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">前往閱讀</a><button id="p2-share-article" class="p2-secondary">分享到健康圈</button></div>');
+    document.getElementById('p2-share-article').onclick=()=>{
+      if(!GH.state.group)return GH.sheet('加入健康圈','<p>加入健康圈後，就能分享文章。</p><a class="p2-primary full" href="group.html">前往健康圈</a>');
+      GH.sheet('確認分享文章','<form id="p2-article-share-form" class="p2-form"><p><strong>'+esc(a.title)+'</strong><br>來源：亞東醫院</p><label>想說的話（選填）<textarea name="note" maxlength="200"></textarea></label><button class="p2-primary full">確認分享到健康圈</button></form>');
+      document.getElementById('p2-article-share-form').onsubmit=e=>{e.preventDefault();e.target.querySelector('button').disabled=true;const note=String(new FormData(e.target).get('note')).trim();GH.set(s=>s.posts.unshift({id:String(Date.now()),author:'我',time:'剛剛',createdAt:new Date().toISOString(),kind:'文章分享',text:(note?note+'\n':'')+a.title+'\n來源：亞東醫院',url:a.url,comments:[],likes:0}));GH.closeSheet();GH.toast('已分享至健康圈');};
     };
-    document.getElementById('p2-save-article').onclick = () => { GH.set(s => { s.articleSaved = saved ? s.articleSaved.filter(id => id !== a.id) : [...s.articleSaved, a.id]; }); renderArticle(); GH.toast(saved ? '已取消收藏' : '已收藏文章'); };
+  }
+  function renderArticle() {
+    const params=new URLSearchParams(location.search);params.set('tab','articles');history.replaceState(null,'','article.html?'+params);
+    renderExplore();
+    const a=(window.GH_ARTICLES||[]).find(x=>String(x.id)===new URLSearchParams(location.search).get('id'));
+    articlePopup(a);
   }
   document.addEventListener('DOMContentLoaded', () => { const page = document.body.dataset.page; if (page === 'explore') renderExplore(); else if (page === 'article') renderArticle(); else if (page === 'ai') renderAI(); });
 })();

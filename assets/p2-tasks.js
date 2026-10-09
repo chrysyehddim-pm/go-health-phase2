@@ -41,15 +41,19 @@
   }
   function render() {
     GH.shell('任務', '任務中心');
-    main().innerHTML = '<section><p class="p2-eyebrow">一起累積健康生活</p><h1 class="p2-page-title">任務中心</h1><p class="p2-lead">選一件今天想做的事，慢慢累積自己的成果。</p></section><section><div class="p2-segment" role="tablist"><button role="tab" aria-selected="' + (view === 'list') + '" data-view="list" class="' + (view === 'list' ? 'active' : '') + '">任務列表</button><button role="tab" aria-selected="' + (view === 'history') + '" data-view="history" class="' + (view === 'history' ? 'active' : '') + '">參與紀錄</button></div></section><section id="p2-task-content"></section>';
+    main().innerHTML = '<section><p class="p2-eyebrow">一起累積健康生活</p><h1 class="p2-page-title">任務中心</h1><p class="p2-lead">選一件今天想做的事，慢慢累積自己的成果。</p></section><section class="p2-task-history-entry"><button data-view="' + (view==='history'?'list':'history') + '" class="p2-text-button">' + (view==='history'?'返回任務':'參與紀錄') + ' <i class="fa-solid fa-chevron-right"></i></button></section><section id="p2-task-content"></section>';
+    const historyEntry=main().querySelector('.p2-task-history-entry');
+    const title=main().querySelector('h1');
+    const titleRow=document.createElement('div');titleRow.className='p2-row p2-task-title-row';
+    title.replaceWith(titleRow);titleRow.append(title,historyEntry.querySelector('button'));historyEntry.remove();
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { view = b.dataset.view; shown = 20; render(); });
-    keyboardTabs('[data-view]', 'data-view');
+
     if (view === 'list') renderList(); else renderHistory();
     GH.scene('tasks');
   }
   function renderList() {
     const node = document.getElementById('p2-task-content');
-    node.innerHTML = '<div class="p2-task-categories" role="tablist" aria-label="任務類型"><button role="tab" aria-selected="' + (category === 'group') + '" data-category="group" class="' + (category === 'group' ? 'active' : '') + '"><i class="fa-solid fa-users" aria-hidden="true"></i>健康圈任務</button><button role="tab" aria-selected="' + (category === 'personal') + '" data-category="personal" class="' + (category === 'personal' ? 'active' : '') + '"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>個人任務</button></div><div id="p2-task-cards"></div>';
+    node.innerHTML = '<div class="p2-segment p2-primary-tabs p2-task-categories" role="tablist" aria-label="任務類型"><button role="tab" aria-selected="' + (category === 'group') + '" data-category="group" class="' + (category === 'group' ? 'active' : '') + '">健康圈任務</button><button role="tab" aria-selected="' + (category === 'personal') + '" data-category="personal" class="' + (category === 'personal' ? 'active' : '') + '">個人任務</button></div><div id="p2-task-cards"></div>';
     document.querySelectorAll('[data-category]').forEach(b => b.onclick = () => { category = b.dataset.category; renderList(); });
     keyboardTabs('[data-category]', 'data-category');
     rememberCompletions();
@@ -68,7 +72,7 @@
     const claim = document.getElementById('p2-claim-task');
     if (claim) claim.onclick = () => {
       if (GH.state.taskClaims.includes(task.id) || progress(task) < task.members || !selfEligible(task)) return;
-      GH.set(s => { s.taskClaims.push(task.id); s.pointAwards.unshift({ id: task.id, title: task.title, points: task.points, date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }) }); const entry = s.activityHistory.find(x => x.taskId === task.id && x.groupName === s.group.name); if (entry) entry.status = 'claimed'; else s.activityHistory.unshift({ taskId: task.id, groupName: s.group.name, title: task.title, date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }), points: task.points, kind: '健康圈任務', status: 'claimed' }); });
+      GH.set(s => { s.taskClaims.push(task.id); s.pointAwards.unshift({ id: task.id, title: task.title, points: task.points, date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }) }); const entry = s.activityHistory.find(x => x.taskId === task.id && (x.groupId === s.group.id || (!x.groupId && x.groupName === s.group.name))); if (entry) entry.status = 'claimed'; else s.activityHistory.unshift({ taskId: task.id, groupId:s.group.id, groupName: s.group.name, title: task.title, date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }), points: task.points, kind: '健康圈任務', status: 'claimed' }); });
       GH.closeSheet(); render(); GH.toast('已獲得 ' + task.points + ' 健康點');
     };
   }
@@ -82,10 +86,14 @@
     const circles = all.filter(x => x.kind === '健康圈任務');
     const records = (historyCategory === 'group' ? circles : historyCategory === 'personal' ? games : all).slice(0,100);
     const played = games.length;
-    const milestones = [[10,'開始探索'],[50,'持續參與'],[100,'百次挑戰']];
+    const month=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'}).slice(0,7);
+    const gameDays=new Set(games.filter(x=>x.date.startsWith(month)).map(x=>x.date)).size;
+    const circleCount=circles.filter(x=>x.date.startsWith(month)).length;
+    const activeDays=new Set(GH.state.records.filter(x=>GH.state.device==='connected'&&GH.state.healthPreferences.includes('steps')&&x.type==='steps'&&x.date.startsWith(month)&&x.value>0).map(x=>x.date)).size;
+    const milestones=[['brain','個人參與',gameDays+' 天動動腦'],['missions','家人合作',circleCount+' 次共同完成'],['steps','生活行動',activeDays+' 天留下步行足跡']];
     const node = document.getElementById('p2-task-content');
     node.innerHTML = '<div class="p2-participation-summary">' + GH.art('journal') + '<div><h2>每次參與，都有收穫</h2><p>回顧近三個月的參與。</p></div><div class="p2-participation-counts"><span><strong>' + played + '</strong>個人遊戲次數</span><span><strong>' + circles.length + '</strong>共同任務完成</span></div></div>' +
-      '<details class="p2-milestone-panel"><summary>參與里程碑<span>看看我的足跡 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></span></summary><p class="p2-small p2-muted">每次動腦，為自己留下新足跡。</p><div class="p2-milestones">' + milestones.map(([n,label]) => '<div class="' + (played >= n ? 'earned' : '') + '"><span class="p2-illustrated-medal">' + GH.art('missions') + '</span><strong>' + label + '</strong><small>' + n + ' 次遊戲</small></div>').join('') + '</div></details>' +
+      '<section class="p2-monthly-footprints"><div class="p2-section-head"><h2>本月健康足跡</h2><span>'+esc(month)+'</span></div><p class="p2-small p2-muted">動動腦、與家人合作，累積生活中的小進步。</p><div class="p2-milestones">' + milestones.map(([art,label,detail])=>'<div><span class="p2-illustrated-medal">'+GH.art(art)+'</span><strong>'+label+'</strong><small>'+detail+'</small></div>').join('')+'</div></section>' +
       '<div class="p2-history-filters p2-pill-row" aria-label="紀錄分類">' + [['all','全部'],['group','健康圈任務'],['personal','個人任務']].map(([key,label]) => '<button data-history-category="' + key + '" aria-pressed="' + (key === historyCategory) + '" class="' + (key === historyCategory ? 'active' : '') + '">' + label + '</button>').join('') + '</div><div class="p2-section-head"><h2>最近紀錄</h2><span class="p2-subtle">三個月內 · 最多 100 筆</span></div><div class="p2-list">' + (records.length ? records.slice(0,shown).map(historyRow).join('') : '<div class="p2-empty">' + GH.art('missions') + '<h3>還沒有完成紀錄</h3><p>一起完成任務，留下共同的健康足跡。</p><button id="p2-history-to-list" class="p2-secondary">查看任務</button></div>') + '</div>' + (shown < records.length ? '<button id="p2-more-history" class="p2-secondary full" style="margin-top:14px">載入更多</button>' : '') + '<div class="p2-actions"><a class="p2-secondary" href="records.html">查看腦健康表現</a></div>';
     node.querySelectorAll('[data-history-category]').forEach(b => b.onclick = () => { historyCategory = b.dataset.historyCategory; shown = 20; renderHistory(); });
     node.querySelectorAll('[data-history-task]').forEach(b => b.onclick = () => openTask(DATA.tasks.find(t => t.id === b.dataset.historyTask)));

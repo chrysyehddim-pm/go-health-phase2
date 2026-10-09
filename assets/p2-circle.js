@@ -4,6 +4,14 @@
   const esc = GH.escape;
   const main = () => document.getElementById('p2-main');
   let visiblePosts = 5;
+  const displayName=name=>name==='我'?(GH.state.group?.nickname || '我'):name;
+  const moodChoices=[['開心','happy'],['平靜','calm'],['疲倦','tired'],['焦慮','anxious'],['低落','low']];
+  const careMessages=['辛苦了，記得休息','今天也一起加油','看到你的分享很開心'];
+  function quickCare(form) {
+    form.querySelector('textarea').insertAdjacentHTML('beforebegin','<div class="p2-quick-care">'+careMessages.map(text=>'<button type="button" data-care-text="'+esc(text)+'">'+esc(text)+'</button>').join('')+'</div>');
+    form.querySelectorAll('[data-care-text]').forEach(b=>b.onclick=()=>{form.querySelector('textarea').value=b.dataset.careText;form.querySelector('textarea').focus();});
+  }
+
   const dayKey = date => date.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
   function postDate(post) {
     const saved = post.createdAt && new Date(post.createdAt);
@@ -37,9 +45,9 @@
     if (!GH.state.group) return renderEntry();
     const group = GH.state.group;
     main().innerHTML = '<section class="p2-circle-head"><p class="p2-eyebrow">健康圈</p><div class="p2-row"><div><h1 class="p2-page-title">' + esc(group.name) + '</h1><p class="p2-lead">和重要的人分享近況，一起照顧健康。</p></div><button id="p2-group-menu" class="p2-round-button" aria-label="健康圈設定"><i class="fa-solid fa-ellipsis"></i></button></div></section>' +
-      '<section class="p2-circle-hero"><div class="p2-avatar-stack">' + group.members.slice(0, 4).map(m => '<span title="' + esc(m.name) + '">' + esc(m.name.slice(0, 1)) + '</span>').join('') + '</div><div><strong>' + group.members.length + ' 位成員</strong><small>分享生活，互相鼓勵</small></div><button id="p2-invite" class="p2-secondary">邀請成員</button></section>' +
-      '<section><div class="p2-section-head"><h2>成員近況</h2></div><div class="p2-member-strip">' + group.members.map(m => '<button class="p2-member" data-member="' + esc(m.name) + '"><span class="p2-avatar">' + esc(m.name.slice(0, 1)) + '</span><strong>' + esc(m.name) + '</strong><small>' + esc(m.status || '一起參與健康圈') + '</small></button>').join('') + '</div></section>' +
-      '<section class="p2-card p2-compose-card"><div class="p2-row"><span class="p2-avatar self">我</span><button id="p2-compose" class="p2-compose-prompt">分享你的近況…</button></div><div class="p2-compose-actions"><button id="p2-share-health"><i class="fa-solid fa-heart-pulse"></i> 健康紀錄</button><a href="explore.html?tab=places"><i class="fa-solid fa-location-dot"></i> 地點</a></div></section>' +
+      '<section class="p2-circle-hero"><div class="p2-avatar-stack">' + group.members.slice(0, 4).map(m => '<span title="' + esc(displayName(m.name)) + '">' + esc(m.name.slice(0, 1)) + '</span>').join('') + '</div><div><strong>' + group.members.length + ' 位成員</strong><small>分享生活，互相鼓勵</small></div><button id="p2-invite" class="p2-secondary">邀請成員</button></section>' +
+      '<section><div class="p2-section-head"><h2>成員近況</h2></div><div class="p2-member-strip">' + group.members.map(m => '<button class="p2-member" data-member="' + esc(m.name) + '"><span class="p2-avatar">' + esc(m.name.slice(0, 1)) + '</span><strong>' + esc(displayName(m.name)) + '</strong><small>' + esc(m.status || '一起參與健康圈') + '</small></button>').join('') + '</div></section>' +
+      '<section class="p2-card p2-compose-card"><div class="p2-row"><span class="p2-avatar self">我</span><button id="p2-compose" class="p2-compose-prompt">分享你的近況…</button></div><div class="p2-compose-actions"><button id="p2-share-mood"><i class="fa-regular fa-face-smile"></i> 心情</button><button id="p2-share-health"><i class="fa-solid fa-heart-pulse"></i> 健康紀錄</button><a href="explore.html?tab=places"><i class="fa-solid fa-location-dot"></i> 地點</a></div></section>' +
       '<section><div class="p2-section-head"><h2>近況動態</h2><span class="p2-subtle">最近三個月</span></div><div id="p2-circle-feed"></div></section>' +
       '<section><div class="p2-section-head"><h2>一起做任務</h2><a href="activities.html">查看任務 <i class="fa-solid fa-chevron-right"></i></a></div><a class="p2-home-link" href="activities.html"><span class="p2-icon"><i class="fa-solid fa-list-check"></i></span><span><strong>健康圈任務</strong><small>透過健康紀錄一起完成挑戰</small></span><i class="fa-solid fa-chevron-right"></i></a></section>';
     const taskSection = main().lastElementChild;
@@ -55,6 +63,7 @@
     document.getElementById('p2-invite').onclick = invite;
     document.getElementById('p2-compose').onclick = compose;
     document.getElementById('p2-share-health').onclick = shareHealth;
+    document.getElementById('p2-share-mood').onclick = shareMood;
     document.querySelectorAll('[data-member]').forEach(b => b.onclick = () => memberSheet(b.dataset.member));
   }
   function renderEntry() {
@@ -67,7 +76,7 @@
     GH.sheet('建立健康圈', '<form id="p2-create-form" class="p2-form"><label>健康圈名稱<input name="name" maxlength="20" required placeholder="例如：我們家的健康圈"></label><button class="p2-primary full">建立健康圈</button></form>');
     document.getElementById('p2-create-form').onsubmit = e => {
       e.preventDefault(); const name = String(new FormData(e.target).get('name')).trim(); if (!name) return;
-      GH.set(s => { s.group = { name, code: '00000', members: [{ name: '我', role: '圈主', status: '健康圈建立者' }] }; s.posts = []; });
+      GH.set(s => { s.group = { id: 'circle-' + crypto.randomUUID(), name, code: '00000', members: [{ name: '我', role: '圈主', status: '健康圈建立者' }] }; s.posts = []; });
       GH.closeSheet(); render(); main().scrollTop = 0; invite();
     };
   }
@@ -78,7 +87,7 @@
       if (code !== '00000') return GH.toast('邀請碼錯誤，請確認後再試一次');
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       GH.set(s => {
-        s.group = { name: '我們家的健康圈', code, members: seedMembers };
+        s.group = { id: 'circle-family', name: '我們家的健康圈', code, members: seedMembers };
         s.posts = [
           { id: 'sample-1', author: '爸爸', time: '昨天', createdAt: yesterday.toISOString(), text: '傍晚到公園走了走，今天的步數也達標了。', kind: '生活近況', comments: [{ author: '媽媽', text: '下次一起去！' }], likes: 2, place: '信義區' },
           { id: 'sample-2', author: '媽媽', time: '今天', createdAt: new Date().toISOString(), text: '完成今天的運動紀錄，感覺精神不錯。', kind: '健康紀錄', comments: [], likes: 1, metric: '運動 25 分鐘' },
@@ -93,7 +102,10 @@
     document.getElementById('p2-copy-code').onclick = async () => { try { await navigator.clipboard.writeText(GH.state.group.code); GH.toast('邀請碼已複製'); } catch (_) { GH.toast('請長按邀請碼複製'); } };
   }
   function groupSettings() {
-    GH.sheet('健康圈設定', '<div class="p2-info-list"><p><strong>健康資料由本人決定是否分享</strong><br>加入健康圈不會自動公開健康數值與日記。</p><p><strong>邀請碼</strong><br>' + esc(GH.state.group.code) + '</p></div><button id="p2-leave" class="p2-secondary full">退出健康圈</button>');
+    const owner=GH.state.group.members.some(m=>m.name==='我'&&m.role==='圈主');
+    GH.sheet('健康圈設定','<div class="p2-group-setting-actions p2-circle-settings">'+(owner?'<button id="p2-edit-circle-name" class="p2-secondary full">編輯健康圈名稱</button>':'<div class="p2-setting-readonly"><strong>健康圈名稱</strong><p>'+esc(GH.state.group.name)+'</p><small>由圈主修改</small></div>')+'<button id="p2-edit-nickname" class="p2-secondary full">編輯我的暱稱</button><div class="p2-info-list"><p><strong>邀請碼</strong><br>'+esc(GH.state.group.code)+'</p><p><strong>健康資料由本人決定是否分享</strong><br>加入健康圈不會自動公開健康數值與日記。</p></div><button id="p2-leave" class="p2-quiet full">退出健康圈</button></div>');
+    document.getElementById('p2-edit-circle-name')?.addEventListener('click',editCircleName);
+    document.getElementById('p2-edit-nickname').onclick = editNickname;
     document.getElementById('p2-leave').onclick = () => GH.sheet('退出健康圈？', '<p>退出後，這個健康圈的近況將不再顯示。</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>保留健康圈</button><button class="p2-primary" id="p2-confirm-leave">確認退出</button></div>');
     document.addEventListener('click', function leave(e) {
       if (!e.target.closest('#p2-confirm-leave')) return;
@@ -102,14 +114,15 @@
   }
   function memberSheet(name) {
     const member = GH.state.group.members.find(m => m.name === name);
-    GH.sheet(name + '的近況', '<div class="p2-member-detail"><span class="p2-avatar">' + esc(name.slice(0, 1)) + '</span><strong>' + esc(name) + '</strong><p>' + esc(member.status || '一起參與健康圈') + '</p></div>' + (name === '我' ? '<a class="p2-secondary full" href="health.html">查看我的紀錄</a>' : '<button id="p2-send-care" class="p2-primary full">傳送關心</button>'));
+    GH.sheet(displayName(name) + '的近況', '<div class="p2-member-detail"><span class="p2-avatar">' + esc(name.slice(0, 1)) + '</span><strong>' + esc(displayName(name)) + '</strong><p>' + esc(member.status || '一起參與健康圈') + '</p></div>' + (name === '我' ? '<a class="p2-secondary full" href="health.html">查看我的紀錄</a>' : '<button id="p2-send-care" class="p2-primary full">傳送關心</button>'));
     const care = document.getElementById('p2-send-care'); if (care) care.onclick = () => {
       GH.sheet('傳送關心給' + name, '<form id="p2-care-form" class="p2-form"><label>想說的話<textarea name="text" maxlength="150" required placeholder="寫一句關心的話"></textarea></label><button class="p2-primary full">送出</button></form>');
+      quickCare(document.getElementById('p2-care-form'));
       document.getElementById('p2-care-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('text')).trim(); if (!text) return; GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), text: '給' + name + '：' + text, kind: '關心訊息', comments: [], likes: 0 })); GH.closeSheet(); renderFeed(); GH.toast('關心已送出'); };
     };
   }
   function postMarkup(p) {
-    return '<article class="p2-social-post"><div class="p2-post-heading"><span class="p2-avatar">' + esc(p.author.slice(0, 1)) + '</span><div><strong>' + esc(p.author) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind) + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '"><i class="fa-regular fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 回應 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + (p.comments || []).map(c => '<div class="p2-comment"><strong>' + esc(c.author) + '：</strong>' + esc(c.text) + '</div>').join('') + '</article>';
+    return '<article class="p2-social-post"><div class="p2-post-heading"><span class="p2-avatar">' + esc(p.author.slice(0, 1)) + '</span><div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind) + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '"><i class="fa-regular fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 回應 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + (p.comments || []).map(c => '<div class="p2-comment"><strong>' + esc(displayName(c.author)) + '：</strong>' + esc(c.text) + '</div>').join('') + '</article>';
   }
   function renderFeed() {
     const node = document.getElementById('p2-circle-feed'); if (!node) return;
@@ -133,7 +146,25 @@
   }
   function comment(id) {
     GH.sheet('回應近況', '<form id="p2-comment-form" class="p2-form"><label>留言<textarea name="text" maxlength="200" required placeholder="寫下想說的話"></textarea></label><button class="p2-primary full">送出回應</button></form>');
+    quickCare(document.getElementById('p2-comment-form'));
     document.getElementById('p2-comment-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('text')).trim(); if (!text) return; GH.set(s => { const p = s.posts.find(x => x.id === id); if (p) p.comments.push({ author: '我', text }); }); GH.closeSheet(); renderFeed(); GH.toast('回應已送出'); };
+  }
+  function editCircleName() {
+    const isOwner=()=>GH.state.group?.members.some(m=>m.name==='我'&&m.role==='圈主');
+    if(!isOwner())return;
+    GH.sheet('編輯健康圈名稱','<form id="p2-circle-name-form" class="p2-form"><label>健康圈名稱<input name="name" maxlength="20" required value="'+esc(GH.state.group.name)+'"></label><p class="p2-small p2-muted">所有成員會看到新名稱，邀請碼與既有分享保持不變。</p><div class="p2-actions"><button class="p2-primary">儲存名稱</button><button type="button" id="p2-cancel-circle-name" class="p2-secondary">取消</button></div></form>');
+    document.getElementById('p2-cancel-circle-name').onclick=groupSettings;
+    document.getElementById('p2-circle-name-form').onsubmit=e=>{e.preventDefault();if(!isOwner())return;const name=String(new FormData(e.target).get('name')).trim();if(!name)return GH.toast('請輸入健康圈名稱');GH.set(s=>s.group.name=name);GH.closeSheet();render();GH.toast('健康圈名稱已更新');};
+  }
+  function editNickname() {
+    GH.sheet('健康圈暱稱','<form id="p2-nickname-form" class="p2-form"><p>只影響這個健康圈的名稱顯示，不更動 HAPPY GO 會員資料。</p><label>我的暱稱<input name="nickname" maxlength="12" required value="'+esc(GH.state.group.nickname || '我')+'"></label><button class="p2-primary full">儲存暱稱</button></form>');
+    document.getElementById('p2-nickname-form').onsubmit=e=>{e.preventDefault();const nickname=String(new FormData(e.target).get('nickname')).trim();if(!nickname)return;GH.set(s=>s.group.nickname=nickname);GH.closeSheet();render();GH.toast('健康圈暱稱已更新');};
+  }
+  function shareMood() {
+    GH.sheet('分享現在的心情','<form id="p2-mood-share-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>選擇想分享的心情</legend>'+moodChoices.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="'+label+'" required>'+GH.art('mood-'+key)+'<span>'+label+'</span><i class="fa-solid fa-check"></i></label>').join('')+'</fieldset><label>補充一句話（選填）<textarea name="note" maxlength="200"></textarea></label><label class="p2-mood-save-option"><input type="checkbox" name="saveDiary"> 同時存成我的心情日記</label><p class="p2-small">分享給：'+esc(GH.state.group.name)+'。私人日記不會自動分享。</p><button id="p2-confirm-mood-share" class="p2-primary full" disabled>確認分享心情</button></form>');
+    const form=document.getElementById('p2-mood-share-form');
+    form.onchange=()=>document.getElementById('p2-confirm-mood-share').disabled=!form.querySelector('[name=mood]:checked');
+    form.onsubmit=e=>{e.preventDefault();if(!GH.state.group)return;const f=new FormData(form),mood=String(f.get('mood')),note=String(f.get('note')||'').trim();if(!moodChoices.some(x=>x[0]===mood))return;document.getElementById('p2-confirm-mood-share').disabled=true;const id=String(Date.now());GH.set(s=>{s.posts.unshift({id,author:'我',createdAt:new Date().toISOString(),time:'剛剛',kind:'心情分享',mood,text:note || '今天的心情：'+mood,comments:[],likes:0});if(f.has('saveDiary'))s.moods.push({id,value:mood,note,date:dayKey(new Date())});});GH.closeSheet();renderFeed();GH.toast('心情已分享');};
   }
   function shareHealth(initial = {}) {
     const types = ['steps','sleep','heart','exercise','weight'];

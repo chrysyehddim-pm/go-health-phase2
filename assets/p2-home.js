@@ -7,8 +7,7 @@
   const row = (href, icon, title, detail) => '<a class="p2-home-link p2-illustrated-entry" href="' + href + '"><span><strong>' + title + '</strong><small>' + detail + '</small></span>' + GH.art(icon) + '<i class="fa-solid fa-chevron-right"></i></a>';
   function render() {
     GH.shell('首頁', '首頁');
-    const hour = new Date().getHours();
-    const greeting = hour < 11 ? '早安' : hour < 18 ? '午安' : '晚安';
+    const greeting = '早安';
     const unread = GH.state.notifications.some(item => !item.read);
     const group = GH.state.group;
     const nudge = GH.latest('steps') ? '今天也用適合自己的節奏活動，記下每一個小進步。' : '連接健康資料後，查看適合自己的活動提醒；今天先找個舒服的時段散步。';
@@ -21,7 +20,19 @@
       '<section class="p2-home-block p2-home-circle"><div class="p2-section-head"><h2>健康圈近況</h2><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div><a class="p2-circle-preview" href="group.html"><img src="images/scene/circle.webp" alt="家人共享客廳"><div><h3>' + (group ? esc(group.name) : '讓健康成為共同的日常') + '</h3><p>' + (group ? '分享近況、互相鼓勵，一起完成任務。' : '邀請家人與好友，一起分享生活、完成任務。') + '</p></div></a>' + (group ? GH.state.posts.slice(0, 2).map(p => '<a class="p2-home-post" href="group.html"><span class="p2-avatar">' + esc(p.author.slice(0,1)) + '</span><span><strong>' + esc(p.author) + '</strong><small>' + esc(p.text) + '</small></span><i class="fa-solid fa-chevron-right"></i></a>').join('') || '<p class="p2-small">分享今天的一件小事，讓家人陪你一起進步。</p>' : '<a class="p2-secondary full" href="group.html">建立或加入健康圈</a>') + '</section>' +
       '<section class="p2-home-block"><div class="p2-section-head"><h2>探索健康服務</h2></div><div class="p2-home-stack">' + row('explore.html', 'explore', '健康文章與附近去處', '附近好去處<br>健康好知識') + row('records.html', 'brain', '腦健康紀錄', '回顧遊戲表現與成就') + '</div></section>';
     const circleBlock = main().querySelector('.p2-home-circle');
-    main().insertBefore(circleBlock, main().children[3]);
+    main().insertBefore(circleBlock, main().children[1]);
+    const points = main().querySelector('.p2-home-points');
+    const reminder = [...main().children].find(n => n.textContent.includes('今天的健康提醒'));
+    reminder.after(points);
+    [...main().querySelectorAll('.p2-home-block')].filter(n => n.querySelector('h2') && ['任務中心','探索健康服務'].includes(n.querySelector('h2').textContent)).forEach(n => n.remove());
+    circleBlock.querySelector('.p2-circle-preview').classList.add('p2-card');
+    if(group) {
+      const task=window.GH_DEMO.tasks[0];
+      const count=Math.min(task.members,group.members.filter(m=>m.name==='我'? GH.latest('steps')?.value>=6000:m.steps>=6000).length);
+      circleBlock.insertAdjacentHTML('beforeend',GH.taskCard(task,{count,joined:true,href:'activities.html'}));
+    }
+    circleBlock.querySelectorAll('.p2-home-post strong').forEach(n=>{if(n.textContent==='我')n.textContent=group?.nickname || '我';});
+
     GH.scene('home');
     document.getElementById('p2-point-info').onclick = () => GH.sheet('健康點說明', '<div class="p2-info-list"><p>完成符合條件的健康任務，可累積健康點。</p><p>每 500 健康點可兌換 1 點 HAPPY GO 點數。</p><p>點選「累兌點紀錄」可查看點數使用情形。</p></div><button class="p2-primary full" data-close-sheet>我知道了</button>');
     document.getElementById('p2-notifications').onclick = notifications;
