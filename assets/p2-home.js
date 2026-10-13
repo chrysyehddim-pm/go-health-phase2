@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const GH = window.GH;
+  const guide = window.GH_GUIDE;
   const esc = GH.escape;
   const main = () => document.getElementById('p2-main');
   const latest = type => { const r = GH.latest(type); return r ? GH.format(r.value) + ' ' + GH.metric(type).unit : '尚無紀錄'; };
@@ -27,7 +28,14 @@
     recordsBlock.querySelector('.p2-metric-grid').outerHTML=available.length?'<div class="p2-metric-grid '+(available.length===1?'p2-single-metric':'')+'">'+available.map(t=>{const r=GH.latest(t);return '<a class="p2-metric" href="health.html?metric='+t+'"><span class="label">'+GH.art(t)+' '+GH.metric(t).name+'</span><span class="value">'+GH.format(r.value)+' <small>'+GH.metric(t).unit+'</small></span><small class="p2-metric-meta">'+esc(r.date)+'</small></a>';}).join('')+'</div>':'<a class="p2-home-link" href="health.html">'+GH.art('connect')+'<span><strong>'+(GH.state.device==='connected'?'尚無可用資料':'連接健康資料')+'</strong><small>'+(GH.state.device==='connected'?'更新資料或查看連接設定':'連接後查看自己的健康變化')+'</small></span><i class="fa-solid fa-chevron-right"></i></a>';
     circleBlock.innerHTML='<div class="p2-section-head"><h2>健康圈近況</h2><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div>'+(group?'<a class="p2-home-link" href="group.html"><span class="p2-avatar">'+group.members.length+'</span><span><strong>'+esc(group.name)+'</strong><small>'+group.members.length+'/5 位成員，一起照顧健康</small></span></a>'+ (GH.state.posts[0]?'<a class="p2-home-post" href="group.html"><span class="p2-avatar">'+esc(GH.state.posts[0].author.slice(0,1))+'</span><span><strong>'+esc(GH.state.posts[0].author==='我'?(group.nickname||'我'):GH.state.posts[0].author)+'</strong><small>'+esc(GH.state.posts[0].text)+'</small></span></a>':'<p>分享心情或傳句關心，開啟今天的對話。</p>')+(()=>{const t=GH.family.activeTasks()[0];if(!t)return '';const x=GH.family.taskStatus(t);return '<a class="p2-home-link p2-home-task-summary" href="activities.html"><span><strong>'+esc(t.title)+'</strong><small>'+esc(x.label)+' · '+x.count+' 人完成</small></span><i class="fa-solid fa-chevron-right"></i></a>';})():'<div class="p2-card warm"><h3>和家人一起照顧健康</h3><p>分享心情、互相關心，一起完成健康任務。</p><a class="p2-secondary" href="group.html">建立或加入健康圈</a></div>');
     const care=GH.family.visibleCare();if(care.length)circleBlock.insertAdjacentHTML('beforeend','<a class="p2-home-care-link" href="group.html">有 '+care.length+' 位家人值得關心 <i class="fa-solid fa-chevron-right"></i></a>');
+    if (guide.welcome()) {
+      circleBlock.insertAdjacentHTML('beforebegin','<section class="p2-guide-welcome" aria-label="首次使用導引"><span class="p2-guide-kicker">歡迎來到 GO HEALTH</span><h2>一起陪伴，把健康過成日常</h2><p>邀請家人與好友加入健康圈，分享近況、互相關心，也能一起完成健康任務。</p><div class="p2-guide-welcome-actions"><a id="p2-guide-join" class="p2-primary" href="group.html">建立或加入健康圈</a><button id="p2-guide-skip" class="p2-secondary" type="button">先看看</button></div></section>');
+    }
+    main().insertAdjacentHTML('beforeend','<section class="p2-guide-help-entry"><button id="p2-guide-help" type="button"><i class="fa-regular fa-circle-question" aria-hidden="true"></i><span>使用說明</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></section>');
     GH.scene('home');
+    document.getElementById('p2-guide-join')?.addEventListener('click',()=>guide.mark('welcome'));
+    document.getElementById('p2-guide-skip')?.addEventListener('click',()=>{guide.mark('welcome');main().querySelector('.p2-guide-welcome')?.remove();});
+    document.getElementById('p2-guide-help').onclick=guide.help;
     document.getElementById('p2-point-info').onclick = () => GH.sheet('健康點說明', '<div class="p2-info-list"><p>完成符合條件的健康任務，可累積健康點。</p><p>每 500 健康點可兌換 1 點 HAPPY GO 點數。</p><p>點選「累兌點紀錄」可查看點數使用情形。</p></div><button class="p2-primary full" data-close-sheet>我知道了</button>');
     document.getElementById('p2-notifications').onclick = notifications;
   }

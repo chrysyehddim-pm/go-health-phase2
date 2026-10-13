@@ -25,11 +25,13 @@
   }
   function renderOverview() {
     const connected = GH.state.device === 'connected';
+    const guideTip = !connected && GH_GUIDE.tip('records') ? GH_GUIDE.tipCard('records', '先連接，再查看自己的健康變化', '選擇同意讀取的健康資料；手機有對應紀錄時，這裡才會顯示數值。') : '';
     const deviceCard='<section class="p2-card p2-device-card"><div class="p2-row start">' + GH.art('connect') + '<div><h2>' + (connected ? '已連接 HAPPY GO App' : '連接 HAPPY GO 健康資料') + '</h2><p>' + (connected ? '從 HAPPY GO App 更新你同意讀取的健康資料。' : '選擇同意讀取的項目，查看自己的健康變化。') + '</p></div></div><p id="p2-sync-status" class="p2-sync-status" role="status">' + syncLabel() + '</p><button id="p2-device" class="p2-primary full">' + (connected ? '管理資料連接' : '連接健康資料') + '</button>' + '</section>';
-    main().innerHTML=recordHeader() + (connected ? '<section class="p2-sync-toolbar"><p id="p2-sync-status" role="status">'+syncLabel()+'</p><button id="p2-update" class="p2-secondary">更新資料</button></section>' : deviceCard) + '<section><div class="p2-section-head"><h2>健康指標</h2><span class="p2-subtle">授權資料</span></div><div class="p2-metric-grid">' + types.map(([type, fa]) => metricCard(type, fa)).join('') + '</div></section>' + '<section><div class="p2-section-head"><h2>腦健康成果</h2></div><a class="p2-home-link" href="records.html">' + GH.art('brain') + '<span><strong>遊戲與表現紀錄</strong><small>回顧近期挑戰與成就</small></span><i class="fa-solid fa-chevron-right"></i></a></section>' + (connected?deviceCard.replace('id="p2-sync-status"','class="p2-sync-status"'):'') + '<section class="p2-privacy"><span>健康資料與心情由你管理，不會自動分享到健康圈。</span></section>';
+    main().innerHTML=recordHeader() + guideTip + (connected ? '<section class="p2-sync-toolbar"><p id="p2-sync-status" role="status">'+syncLabel()+'</p><button id="p2-update" class="p2-secondary">更新資料</button></section>' : deviceCard) + '<section><div class="p2-section-head"><h2>健康指標</h2><span class="p2-subtle">授權資料</span></div><div class="p2-metric-grid">' + types.map(([type, fa]) => metricCard(type, fa)).join('') + '</div></section>' + '<section><div class="p2-section-head"><h2>腦健康成果</h2></div><a class="p2-home-link" href="records.html">' + GH.art('brain') + '<span><strong>遊戲與表現紀錄</strong><small>回顧近期挑戰與成就</small></span><i class="fa-solid fa-chevron-right"></i></a></section>' + (connected?deviceCard.replace('id="p2-sync-status"','class="p2-sync-status"'):'') + '<section class="p2-privacy"><span>健康資料與心情由你管理，不會自動分享到健康圈。</span></section>';
     document.getElementById('p2-device').onclick = deviceSheet;
     const update = document.getElementById('p2-update');
     if (update) update.onclick = updateData;
+    GH_GUIDE.bind(main());
     GH.scene('records');
   }
   function syncLabel() {

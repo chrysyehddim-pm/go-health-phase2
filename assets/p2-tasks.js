@@ -48,7 +48,9 @@
     rememberCompletions();
     const cards = document.getElementById('p2-task-cards');
     if (category === 'group') {
-      cards.innerHTML = '<div class="p2-section-head"><h2>一起完成</h2><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div><p class="p2-section-intro">每週一起完成健康或動腦目標。達標後請在本週期限內主動領取，逾期不補領。</p><div class="p2-task-grid">' + GH.family.activeTasks().map(groupCard).join('') + '</div>';
+      const guideTip=GH_GUIDE.tip('tasks')?GH_GUIDE.tipCard('tasks','家人一起完成，各自領取健康點','每位家人完成自己的條件；達到任務人數後，已達標者可在本週期限內各自領取。'):'';
+      cards.innerHTML = guideTip + '<div class="p2-section-head"><h2>一起完成</h2><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div><p class="p2-section-intro">每週一起完成健康或動腦目標。達標後請在本週期限內主動領取，逾期不補領。</p><div class="p2-task-grid">' + GH.family.activeTasks().map(groupCard).join('') + '</div>';
+      GH_GUIDE.bind(cards);
       if(!GH.family.activeTasks().length)cards.insertAdjacentHTML('beforeend','<div class="p2-empty"><h3>目前沒有可參與的任務</h3><p>過往成果可在參與紀錄查看。</p></div>');
       cards.querySelectorAll('[data-task]').forEach(b => b.onclick = () => openTask(DATA.tasks.find(t => t.id === b.dataset.task)));
     } else {

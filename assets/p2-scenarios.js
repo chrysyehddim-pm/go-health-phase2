@@ -1,9 +1,10 @@
 (function(){
- const GH=window.GH,param=new URLSearchParams(location.search),requested=param.get('scenario'),aliases={S01:'new',S02:'no-consent',S03:'all-metrics',S04:'owner',S05:'no-posts',S06:'care-many',S07:'task-wait',S08:'task-unlocked',S09:'task-ready',S10:'task-claimed',S11:'history',S12:'mood'},id=aliases[requested]||requested;if(!id)return;
- if(requested==='S11')param.set('view','history');
+ const GH=window.GH,param=new URLSearchParams(location.search),requested=param.get('scenario'),aliases={S01:'new',S02:'new',S03:'no-consent',S04:'all-metrics',S05:'owner',S06:'no-posts',S07:'care-many',S08:'task-wait',S09:'task-unlocked',S10:'task-ready',S11:'task-claimed',S12:'history',S13:'mood'},id=aliases[requested]||requested;if(!id)return;
+ if(requested==='S12')param.set('view','history');
  const valid=['history','new','member','owner','no-posts','no-consent','no-data','one-metric','two-metrics','all-metrics','stale','care','care-health','task-wait','task-unlocked','task-ready','task-claimed','task-expired','task-next','task-joined','task-game','task-rollover','care-expired','care-many','care-recovered','care-insufficient','care-steps','mood'];if(!valid.includes(id))return;
  const day=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});};
  const s=GH.fresh();s.member.age=58;s.healthPreferences=[];s.taskPeriods={};s.careEvents=[];s.scenario=id;s.demoScenarioCode=requested;s.healthSync=null;
+ s.guideMode=requested==='S01'?'demo':'off';s.guideProgress={};
  const rows=(steps,exercise)=>[{type:'steps',value:steps,date:day(0),source:'HAPPY GO App · 手機健康資料'},{type:'exercise',value:exercise,date:day(0),source:'HAPPY GO App · 手機健康資料'}];
  if(id!=='new')s.group={id:'circle-family',name:'我們家的健康圈',code:'00000',nickname:'小晴',members:[{name:'我',role:id==='owner'?'圈主':'成員',joinedAt:day(-20),careConsent:id!=='no-consent',lastLoginAt:day(0),lastGameAt:day(0)},{name:'爸爸',role:id==='owner'?'成員':'圈主',joinedAt:day(-20),careConsent:true,lastLoginAt:day(0),lastGameAt:day(0),healthRecords:rows(7200,20)},{name:'媽媽',role:'成員',joinedAt:day(-20),careConsent:true,lastLoginAt:day(0),lastGameAt:day(0),healthRecords:rows(8300,25)},{name:'姊姊',role:'成員',joinedAt:day(-20),careConsent:true,lastLoginAt:day(0),lastGameAt:day(0),healthRecords:rows(6500,18)}]};
  if(s.group&&!['no-posts','no-consent'].includes(id))s.posts=[{id:'sample-1',author:'媽媽',createdAt:new Date().toISOString(),time:'今天',kind:'生活近況',text:'今天到公園走走，和大家一起累積健康生活。',comments:[],likes:2}];
@@ -35,8 +36,8 @@
  }
  if(id==='mood')s.moods=[{id:'mood-1',date:day(0),value:'開心',note:'今天和家人一起散步，很開心。'},{id:'mood-2',date:day(-1),value:'疲倦',note:'想早一點休息。'}];
  if(id==='new')s.gameHistory=[];
- if(requested==='S04'){s.group.members.push({name:'阿姨',role:'成員',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)});}
- if(requested==='S05'){s.group.name='我的健康圈';s.group.members=[{name:'我',role:'圈主',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)}];s.device='disconnected';s.healthPreferences=[];s.records=[];s.gameHistory=[];}
+ if(requested==='S05'){s.group.members.push({name:'阿姨',role:'成員',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)});}
+ if(requested==='S06'){s.group.name='我的健康圈';s.group.members=[{name:'我',role:'圈主',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)}];s.device='disconnected';s.healthPreferences=[];s.records=[];s.gameHistory=[];}
  if(id==='history'){
   const g=s.group,range=GH.family.weekRange(),p={id:g.id+':'+range.start,...range,members:g.members.map(m=>m.name),unlocked:{group_steps:true},completed:{group_steps:['我','爸爸']},completionDates:{}};
   s.taskPeriods[g.id]=p;g.members.slice(1).forEach(m=>m.healthRecords=[]);
