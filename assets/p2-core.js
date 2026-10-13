@@ -3,7 +3,7 @@
   const KEY = 'gohealth_p2_prototype_v3';
   const dateAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); };
   const sampleGames = ['眼力極限考驗', '生活好時光', '24H 一日店長', '家事達人', '健康小學堂', '幸福柑仔店'];
-  const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : i % sampleGames.length === 4 ? 50 : 100, kind: '個人任務' }));
+  const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : i % sampleGames.length === 4 ? 50 : 100, kind: '個人任務', completed:true }));
   const fresh = () => ({
     records: [],
     diaries: [],
@@ -111,15 +111,16 @@
     }
   }
   function taskCard(task, options = {}) {
-    const count = options.count || 0;
+    const status=window.GH_FAMILY?.taskStatus(task);
+    const count = status?.count ?? options.count ?? 0;
     const href = options.href;
     const tag = href ? 'a' : 'article';
     const image = 'images/scene/' + (task.image || 'task-walk') + '.webp';
     return '<' + tag + ' class="p2-task-card p2-art-card ' + (href ? 'p2-illustrated-task' : '') + '"' + (href ? ' href="' + escape(href) + '"' : '') + '>' +
       '<div class="p2-card-art" aria-hidden="true"><img src="' + image + '" alt="" loading="lazy"></div>' +
-      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p></div>' +
-      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? '已達成 ' + count + '／' + task.members + ' 人' : '加入健康圈完成任務') + '</span>' +
-      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + (options.claimed ? '查看成果' : '查看任務') + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div></' + tag + '>';
+      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p><p class="p2-task-personal-status">'+escape(status?.label || '')+'</p></div>' +
+      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? (status?.unlocked?'已解鎖 · '+count+' 人完成':'已達成 ' + count + '／' + task.members + ' 人') : '加入健康圈完成任務') + '</span>' +
+      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + (options.claimed ? '查看成果' : '查看任務') + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+(status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'')+'</' + tag + '>';
   }
   function shell(active, title) {
     const header = document.getElementById('p2-header');
@@ -170,19 +171,7 @@
     if (overlay) overlay.classList.remove('open');
     document.body.classList.remove('modal-open');
   }
-  function rememberTaskCompletions() {
-    if (!state.group || state.device !== 'connected' || !window.GH_DEMO) return;
-    const cutoff = dateAgo(6);
-    const has = (type,min) => state.records.some(r => r.type === type && r.value >= min && r.date >= cutoff && /裝置|手機/.test(r.source));
-    window.GH_DEMO.tasks.forEach(t => {
-      const self = t.type === 'both' ? has('steps',6000) && has('exercise',15) : has(t.type,t.min);
-      const others = state.group.members.filter(m => m.name !== '我').filter(m => t.type === 'both' ? m.steps >= 6000 && m.exercise >= 15 : (m[t.type] || 0) >= t.min).length;
-      if (!self || others + 1 < t.members) return;
-      const found = state.activityHistory.find(x => (x.taskId === t.id || (!x.taskId && x.title === t.title)) && (x.groupId === state.group.id || (!x.groupId && (!x.groupName || x.groupName === state.group.name))));
-      if (found) { found.taskId = t.id; found.groupId = state.group.id; found.groupName ||= state.group.name; found.status = state.taskClaims.includes(t.id) ? 'claimed' : (found.status || 'pending'); }
-      else state.activityHistory.unshift({taskId:t.id,groupId:state.group.id,groupName:state.group.name,title:t.title,date:dateAgo(0),points:t.points,kind:'健康圈任務',status:state.taskClaims.includes(t.id)?'claimed':'pending'});
-    });
-  }
+  function rememberTaskCompletions() { window.GH_FAMILY?.remember(); }
   let healthSyncRun = 0;
   function cancelHealthSync() { healthSyncRun++; }
   function art(name, cls = '') {
@@ -195,9 +184,11 @@
     const series={steps:[6200,7100,6800,8200,7600,6500,7840],sleep:[7.2,6.8,7.5,7.1,6.9,7.6,7.3],heart:[72,70,74,71,69,73,72],exercise:[20,15,30,25,18,35,22]};
     const records=[];
     requested.forEach(type=>{
-      if(type==='weight') [28,21,14,7,1].forEach((days,i)=>records.push({type,value:[65.4,65.2,65.3,65.1,65][i],date:dateAgo(days)}));
-      else if(series[type])for(let days=29;days>=0;days--)records.push({type,value:series[type][(29-days)%7],date:dateAgo(days)});
+      if(type==='weight') [28,21,14,7,1].forEach((days,i)=>records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',type,value:[65.4,65.2,65.3,65.1,65][i],date:dateAgo(days)}));
+      else if(series[type])for(let days=29;days>=0;days--)records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',type,value:series[type][(29-days)%7],date:dateAgo(days)});
     });
+    if(state.demoHealthMode==='empty')return [];
+    if(state.demoHealthMode==='stale')records.forEach(r=>{const d=new Date(r.date+'T12:00:00+08:00');d.setDate(d.getDate()-12);r.date=d.toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});});
     return records;
   }
   async function syncHealthData() {
@@ -214,7 +205,7 @@
       if (!payload || !Array.isArray(payload.records)) throw Error('Invalid bridge payload');
       const rows = payload.records.filter(r => requested.includes(r.type) && Number.isFinite(Number(r.value)) && Number(r.value) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
       set(s => {
-        s.records = rows.map(r=>({id:r.type+'-'+r.date,type:r.type,value:Number(r.value),date:r.date,source:'HAPPY GO App · 手機健康資料'}));
+        s.records = rows.map(r=>({id:r.type+'-'+r.date,type:r.type,value:Number(r.value),date:r.date,source:'HAPPY GO App · 手機健康資料',validDay:r.validDay===true,fullDay:r.fullDay===true,sleepDailyTotal:r.sleepDailyTotal===true}));
         s.device = 'connected'; s.healthSource = 'HAPPY GO App';
         s.healthUpdatedAt = new Date().toISOString(); s.healthSync = 'ready';
       });

@@ -8,8 +8,9 @@ window.GH_DEMO = {
     { title: '健康小學堂', image: 'symbol-school', detail: '用幾道題目認識健康知識', points: '每日 +50 點', url: 'https://go-health-school-prototype.vercel.app/', icon: 'fa-book-open' }
   ],
   tasks: [
-    { id: 'group_steps', image: 'task-walk-portrait', shortDetail: '7 天內，2 人各有一天達到 6,000 步。', title: '雙人步行接力', detail: '最近 7 天至少 2 位成員各記錄一天 6,000 步。', icon: 'fa-shoe-prints', points: 300, type: 'steps', min: 6000, members: 2 },
+    { id: 'group_steps', image: 'task-walk-portrait', shortDetail: '7 天內，2 人各有一天達到 5,000 步。', title: '雙人步行接力', detail: '本週至少 2 位成員各有一天達到 5,000 步。', icon: 'fa-shoe-prints', points: 300, type: 'steps', min: 5000, members: 2 },
     { id: 'group_exercise', image: 'task-move-portrait', shortDetail: '7 天內，2 人各完成 15 分鐘運動。', title: '一起動一動', detail: '最近 7 天至少 2 位成員各記錄 15 分鐘運動。', icon: 'fa-person-walking', points: 200, type: 'exercise', min: 15, members: 2 },
+    { id: 'group_brain', image:'symbol-memory', shortDetail:'本週至少 2 人，各有 3 天完成任一款腦健康遊戲。', title:'一起動動腦', detail:'每人累積 3 個不同日期完成任一款遊戲，同日多次只計一天。', points:300, type:'gameDays', min:3, members:2 },
     { id: 'group_balance', image: 'task-family-portrait', shortDetail: '7 天內，3 人各完成 6,000 步＋15 分鐘運動。', title: '全家活力週', detail: '最近 7 天至少 3 位成員各完成 6,000 步與 15 分鐘運動紀錄。', icon: 'fa-people-group', points: 500, type: 'both', members: 3 }
   ]
 };

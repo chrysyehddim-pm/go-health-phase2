@@ -530,3 +530,42 @@ button:disabled { opacity:.6; cursor:wait; }
 .p2-setting-readonly strong { font-size:18px; }
 .p2-setting-readonly p { margin:6px 0; font-size:20px; font-weight:700; }
 .p2-setting-readonly small { color:#647987; font-size:16px; }
+
+.p2-single-metric { grid-template-columns:1fr; }
+.p2-home-task-summary { margin-top:12px; }
+.p2-task-personal-status { margin:12px 16px 0; font-size:17px; color:#245d45; }
+.p2-care-section .p2-card+.p2-card { margin-top:12px; }
+.p2-care-section button { margin-top:12px; }
+.p2-form .p2-mood-save-option { display:flex; flex-direction:row; align-items:center; gap:10px; font-size:18px; }
+.p2-form .p2-mood-save-option input { flex:0 0 22px; width:22px; height:22px; min-height:22px; padding:0; margin:0; }
+#p2-diary-share-form > p,#p2-care-consent > p { margin:0; line-height:1.6; }
+
+.p2-home-circle .p2-card.warm > .p2-secondary { margin-top:16px; }
+.p2-member-entry { display:flex; align-items:center; gap:12px; border:0; background:transparent; padding:12px 0 0; color:#42665a; min-height:44px; font-size:18px; }
+.p2-member-entry .p2-avatar-stack span { width:30px; height:30px; font-size:16px; }
+.p2-weekly-summary { background:#f4f8ee; }
+.p2-weekly-summary h3 { font-size:21px; }
+.p2-weekly-summary small { display:block; font-size:16px; color:#60756c; margin-top:8px; }
+.p2-share-choices { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.p2-share-choices .p2-choice { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:18px 8px; font-size:19px; min-height:126px; color:#244c3b; text-decoration:none; }
+.p2-share-choices img { width:60px; height:60px; }
+.p2-care-summary { margin-bottom:20px; }
+.p2-care-summary h3 { font-size:21px; }
+.p2-care-person { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid #eee3ce; }
+.p2-care-person[hidden] { display:none; }
+.p2-care-person > div { flex:1; min-width:0; }
+.p2-care-person p { font-size:17px; line-height:1.6; }
+.p2-care-person button { flex:none; white-space:nowrap; }
+.p2-home-care-link { display:block; margin-top:16px; padding:12px; border-radius:12px; background:#fff5dc; color:#5d6236; font-size:18px; font-weight:700; text-decoration:none; }
+.p2-post-comments { margin-top:12px; font-size:17px; }
+.p2-post-comments summary { min-height:44px; cursor:pointer; color:#36755b; }
+
+.p2-completed-members { display:flex; flex-wrap:wrap; gap:10px 12px; margin-top:12px; }
+.p2-completed-person { display:flex; align-items:center; gap:6px; font-size:16px; color:#245d45; }
+.p2-completed-person .p2-avatar { width:30px; height:30px; flex:0 0 30px; font-size:16px; }
+.p2-completed-note,.p2-completed-empty { font-size:16px; line-height:1.5; color:#5e756a; margin:10px 0 0; }
+.p2-art-card .p2-completed-members { gap:8px; }
+.p2-art-card .p2-completed-person { flex-wrap:wrap; font-size:16px; }
+.p2-task-completed-footer { grid-column:1 / -1; grid-row:3; padding:12px 16px; border-top:1px solid #e3e9da; background:#f6f9ef; }
+.p2-task-completed-footer .p2-completed-members { margin-top:0; }
+.p2-secondary:disabled { opacity:.55; cursor:not-allowed; }
