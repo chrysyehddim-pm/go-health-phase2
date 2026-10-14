@@ -597,3 +597,14 @@ button:disabled { opacity:.6; cursor:wait; }
 .p2-guide-help-art { display:grid; place-items:center; flex:0 0 52px; width:52px; height:52px; border-radius:15px; background:#eaf5e7; color:#168256; font-size:23px; }
 .p2-guide-help-art .p2-object-art { width:42px; height:42px; object-fit:contain; }
 @media(max-width:370px) { .p2-guide-welcome { padding:18px; } .p2-guide-welcome-actions { flex-direction:column; } .p2-guide-welcome-actions > * { flex:0 0 auto; width:100%; } }
+
+/* Let the document scroll so mobile browser chrome can retract naturally. */
+body:has(.p2-scene-app) { background:#fffefa; }
+.p2-scene-app { display:flow-root; height:auto; min-height:100svh; overflow:visible; background:#fffefa; }
+.p2-scene-app .p2-main { position:relative; inset:auto; margin-top:20svh; min-height:80svh; overflow:visible; overscroll-behavior:auto; }
+.p2-scene-app .p2-sheet-content { min-height:67svh; }
+.p2-sheet-frame { inset:33svh 0 0; transform:none !important; }
+.p2-bottom-nav { bottom:max(12px, env(safe-area-inset-bottom, 0px)) !important; }
+.p2-danger { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:11px 16px; border:1px solid #dba8a1; border-radius:13px; background:#fff7f5; color:#a33f32; font:inherit; font-size:17px; font-weight:800; cursor:pointer; text-align:center; }
+.p2-danger.full { width:100%; margin-top:16px; }
+.p2-danger:focus-visible { outline:3px solid #a33f32; outline-offset:3px; }

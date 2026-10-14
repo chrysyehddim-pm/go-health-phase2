@@ -83,6 +83,7 @@
     document.getElementById('p2-join-form').onsubmit = e => {
       e.preventDefault(); const code = String(new FormData(e.target).get('code')).trim();
       if (code !== '00000') return GH.toast('邀請碼錯誤，請確認後再試一次');
+      if (GH.state.disbandedGroupIds?.includes('circle-family')) return GH.sheet('邀請碼已失效','<p>這個健康圈已解散，請向圈主索取新邀請碼。</p><button class="p2-secondary full" data-close-sheet>我知道了</button>');
       const target=GH.state.circleDirectory?.['circle-family'] || (GH.state.group?.id==='circle-family'?GH.state.group:{id:'circle-family',name:'我們家的健康圈',code:'00000',members:seedMembers.filter(m=>m.name!=='我')});
       const permission=GH.family.joinPermission(target);if(!permission.allowed)return permission.reason==='already'?GH.toast('你已加入這個健康圈'):GH.sheet('健康圈已滿員','<p>這個健康圈已達5人上限，請聯繫圈主。</p><button class="p2-secondary full" data-close-sheet>我知道了</button>');
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
@@ -109,10 +110,11 @@
     document.getElementById('p2-manage-members')?.addEventListener('click',GH.family.manageMembers);
     document.getElementById('p2-care-settings').onclick=GH.family.careConsent;
     document.getElementById('p2-edit-nickname').onclick = editNickname;
-    document.getElementById('p2-leave').onclick = () => GH.sheet('退出健康圈？', '<p>退出後，這個健康圈的近況將不再顯示。</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>保留健康圈</button><button class="p2-primary" id="p2-confirm-leave">確認退出</button></div>');
+    document.getElementById('p2-leave').textContent=owner?'解散健康圈':'退出健康圈';
+    document.getElementById('p2-leave').onclick = () => GH.sheet(owner?'解散健康圈？':'退出健康圈？', '<p>'+(owner?'你是圈主。解散後，所有成員都將離開健康圈，邀請碼也會失效。已領取的個人健康點與參與紀錄會保留。':'退出後，你將無法查看這個健康圈的近況。已領取的個人健康點與參與紀錄會保留。')+'</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>取消</button><button class="p2-danger" id="p2-confirm-leave">'+(owner?'確認解散':'確認退出')+'</button></div>');
     document.addEventListener('click', function leave(e) {
       if (!e.target.closest('#p2-confirm-leave')) return;
-      GH.set(s => { s.circleDirectory||={};s.circleDirectory[s.group.id]={...s.group,members:s.group.members.filter(m=>m.name!=='我')};s.group = null; s.posts = []; }); GH.closeSheet(); render(); document.removeEventListener('click', leave);
+      GH.set(s => { const group=s.group;if(!group)return;s.circleDirectory||={};if(owner){delete s.circleDirectory[group.id];s.disbandedGroupIds||=[];if(!s.disbandedGroupIds.includes(group.id))s.disbandedGroupIds.push(group.id);}else s.circleDirectory[group.id]={...group,members:group.members.filter(m=>m.name!=='我')};s.group=null;s.posts=[]; }); GH.closeSheet(); render(); document.removeEventListener('click', leave);
     });
   }
   function memberSheet(name) {
@@ -195,5 +197,6 @@
       };
     };
   }
+  document.addEventListener('gh:circle-refresh', render);
   document.addEventListener('DOMContentLoaded', render);
 })();

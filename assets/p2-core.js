@@ -65,13 +65,7 @@
       hero.id = 'p2-scene';
       hero.className = 'p2-scene';
       app.insertBefore(hero, main);
-      // The scroll viewport never changes size. The spacer scrolls away so the
-      // sheet covers the hero without feeding scroll position back into layout.
-      main.addEventListener('scroll', () => {
-        const spacer = main.querySelector('.p2-scene-spacer');
-        app.classList.toggle('p2-scene-collapsed', main.scrollTop >= (spacer?.offsetHeight || 1));
-        positionSheetFrame();
-      }, { passive: true });
+      // The document scrolls as one page; the sheet moves over the hero.
     }
     hero.dataset.scene = name;
     if (!hero.querySelector('img') || hero.querySelector('img').dataset.name !== name) {
@@ -98,16 +92,6 @@
       frame.className = 'p2-sheet-frame';
       frame.setAttribute('aria-hidden', 'true');
       app.appendChild(frame);
-      window.addEventListener('resize', positionSheetFrame);
-    }
-    positionSheetFrame();
-    function positionSheetFrame() {
-      const frame = document.getElementById('p2-sheet-frame');
-      if (!frame) return;
-      const spacer = main.querySelector('.p2-scene-spacer');
-      const offset = Math.max(0, (spacer?.offsetHeight || 0) - main.scrollTop);
-      // Move only the decorative outline; the scroll viewport stays fixed.
-      frame.style.transform = 'translateY(' + offset + 'px)';
     }
   }
   function taskCard(task, options = {}) {
