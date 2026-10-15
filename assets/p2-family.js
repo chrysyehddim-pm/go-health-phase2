@@ -13,7 +13,7 @@
   p.unlocked||={};p.completed||={};p.completionDates||={};g.members.forEach(m=>{if(!p.members.includes(m.name))p.members.push(m.name);});return p;
  }
  function taskStatus(t,existing){
-  const s=GH.state,g=s.group,p=existing||period();if(!p)return {count:0,joined:false,label:'加入健康圈完成任務',active:false};
+  const s=GH.state,g=s.group,p=existing||period();if(!p)return {count:0,joined:false,label:'共同任務預覽',active:false};
   const key=p.id+':'+t.id,completed=p.completed[t.id]||=[],active=today()>=p.start&&today()<=p.end;
   p.completionDates||={};p.completionDates[t.id]||={};
   const valid=r=>r.date>=p.start&&r.date<=p.end&&r.date<=today();
@@ -56,27 +56,29 @@
  }
  function careConsent(){
   const me=GH.state.group.members.find(m=>m.name==='我');
-  GH.sheet('家人關心提醒','<form id="p2-care-consent" class="p2-form"><p>若你七天未登入、七天未完成遊戲，或已授權健康資料符合關心條件，系統會通知圈內其他所有成員關心你。</p><p>通知不公開完整健康數值，也不代表醫療警報。</p><label class="p2-mood-save-option"><input type="checkbox" name="consent"'+(me.careConsent?' checked':'')+'> 我同意向家人發出關心提醒</label><button class="p2-primary full">儲存設定</button></form>');
+  GH.sheet('家人關心提醒','<form id="p2-care-consent" class="p2-form"><p>若你七天未登入、七天未完成遊戲，或近 30 天的健康資料持續符合關心條件，系統會提醒圈內其他成員。</p><p>健康判定至少需要 21 天有效資料；同一狀況持續時，每週最多提醒一次。通知不公開完整健康數值，也不代表醫療警報。</p><label class="p2-mood-save-option"><input type="checkbox" name="consent"'+(me.careConsent?' checked':'')+'> 我同意向家人發出關心提醒</label><button class="p2-primary full">儲存設定</button></form>');
   document.getElementById('p2-care-consent').onsubmit=e=>{e.preventDefault();GH.set(()=>me.careConsent=new FormData(e.target).has('consent'));evaluateCare();GH.closeSheet();location.reload();};
  }
  function healthConditions(m){
   const isSelf=m.name==='我',s=GH.state,rows=isSelf?(s.device==='connected'?s.records.filter(r=>s.healthPreferences.includes(r.type)):[]):(m.healthRecords||[]),from=dateOffset(-30),to=dateOffset(-1);
-  const valid=type=>{const dates=new Map();rows.filter(r=>r.type===type&&r.date>=from&&r.date<=to&&r.validDay===true&&r.fullDay===true&&(type!=='sleep'||r.sleepDailyTotal===true)&&Number.isFinite(Number(r.value))).forEach(r=>dates.set(r.date,Number(r.value)));return [...dates.values()];};
+  const valid=type=>{const dates=new Map();rows.filter(r=>r.type===type&&r.date>=from&&r.date<=to&&r.validDay===true&&r.fullDay===true&&(type!=='sleep'||r.sleepDailyTotal===true)&&Number.isFinite(Number(r.value))).forEach(r=>dates.set(r.date,Number(r.value)));return [...dates.entries()].sort((a,b)=>a[0].localeCompare(b[0]));};
+  const sustained=(entries,threshold)=>{if(entries.length<21)return null;const latest=entries.filter(([date])=>date>=dateOffset(-7));if(latest.length<4)return false;const average=latest.reduce((sum,[,value])=>sum+value,0)/latest.length;return entries.filter(([,value])=>value<threshold).length>=8&&average<threshold;};
   const age=isSelf?(s.member.age||null):m.age,sleep=valid('sleep'),steps=valid('steps');
-  return {sleep:age>=18&&sleep.length>=21?sleep.filter(v=>v<7).length>=8:null,steps:m.stepReminderApplicable===false||(isSelf&&s.member.stepReminderApplicable===false)?null:steps.length>=21?steps.filter(v=>v<5000).length>=8:null};
+  return {sleep:age>=18?sustained(sleep,7):null,steps:m.stepReminderApplicable===false||(isSelf&&s.member.stepReminderApplicable===false)?null:sustained(steps,5000)};
  }
  function evaluateCare(){
-  const s=GH.state,g=s.group;if(!g)return;s.careEvents||=[];s.careEpisodes||={};const cutoff=dateOffset(-7);
-  const labels={login:'近期較少登入，邀請他回來看看',game:'近期較少完成動腦遊戲',sleep:'近期有幾天休息較少',steps:'近期有幾天活動較少'};
+  const s=GH.state,g=s.group;if(!g)return;s.careEvents||=[];s.careEpisodes||={};const cutoff=dateOffset(-7),week=7*86400000,now=Date.now();
+  const labels={login:'近期較少登入，邀請他回來看看',game:'近期較少完成動腦遊戲',sleep:'近 30 天有多次睡眠少於 7 小時',steps:'近 30 天有多次每日步數少於 5,000 步'};
   g.members.forEach(m=>{
    const joined=m.joinedAt||today(),health=healthConditions(m),conditions={login:(m.lastLoginAt||joined)<=cutoff,game:(m.lastGameAt||joined)<=cutoff,...health};
    if(!m.careConsent){s.careEvents.filter(e=>e.groupId===g.id&&e.subject===m.name).forEach(e=>{e.withdrawn=true;});Object.keys(s.careEpisodes).filter(k=>k.startsWith(g.id+':'+m.name+':')).forEach(k=>s.careEpisodes[k].active=false);return;}
-   const newReasons=[];
-   Object.entries(conditions).forEach(([rule,value])=>{const key=g.id+':'+m.name+':'+rule,ep=s.careEpisodes[key]||={active:false};if(value===null)return;if(!value){ep.active=false;return;}if(!ep.active){ep.active=true;ep.since=new Date().toISOString();newReasons.push(rule);}});
-   if(!newReasons.length)return;
-   let event=s.careEvents.find(e=>e.groupId===g.id&&e.subject===m.name&&!e.withdrawn&&Date.now()-new Date(e.createdAt).getTime()<7*86400000);
-   if(event){event.rules=[...new Set([...(event.rules||[]),...newReasons])];event.reasons=event.rules.map(r=>labels[r]);return;}
-   event={id:crypto.randomUUID(),groupId:g.id,subject:m.name,rules:newReasons,reasons:newReasons.map(r=>labels[r]),createdAt:new Date().toISOString(),recipients:g.members.filter(x=>x.name!==m.name).map(x=>x.name),responses:[]};s.careEvents.unshift(event);
+   const activeRules=[],notifyRules=[];
+   Object.entries(conditions).forEach(([rule,value])=>{const key=g.id+':'+m.name+':'+rule,ep=s.careEpisodes[key]||={active:false,lastNotifiedAt:null};if(value===null)return;if(!value){ep.active=false;return;}activeRules.push(rule);const due=!ep.active||!ep.lastNotifiedAt||now-new Date(ep.lastNotifiedAt).getTime()>=week;if(!ep.active){ep.active=true;ep.since=new Date().toISOString();}if(due)notifyRules.push(rule);});
+   s.careEvents.filter(e=>e.groupId===g.id&&e.subject===m.name&&!e.withdrawn).forEach(e=>{e.rules=(e.rules||[]).filter(rule=>activeRules.includes(rule));e.reasons=e.rules.map(rule=>labels[rule]);if(!e.rules.length)e.withdrawn=true;});
+   if(!activeRules.length||!notifyRules.length)return;
+   let event=s.careEvents.find(e=>e.groupId===g.id&&e.subject===m.name&&!e.withdrawn&&now-new Date(e.createdAt).getTime()<week);
+   if(event){event.rules=[...new Set([...(event.rules||[]),...activeRules])];event.reasons=event.rules.map(r=>labels[r]);return;}
+   event={id:crypto.randomUUID(),groupId:g.id,subject:m.name,rules:activeRules,reasons:activeRules.map(r=>labels[r]),createdAt:new Date().toISOString(),recipients:g.members.filter(x=>x.name!==m.name).map(x=>x.name),responses:[]};s.careEvents.unshift(event);notifyRules.forEach(rule=>{s.careEpisodes[g.id+':'+m.name+':'+rule].lastNotifiedAt=event.createdAt;});
    if(event.recipients.includes('我')){
     let notification=s.notifications.find(n=>n.careBatch===today()&&n.groupId===g.id);
     if(!notification){notification={id:'care-batch-'+g.id+'-'+today(),careBatch:today(),groupId:g.id,careIds:[],title:'家人有值得關心的近況',detail:'傳句話，讓家人感受到你的陪伴。',url:'group.html',read:false};s.notifications.unshift(notification);}notification.careIds.push(event.id);
@@ -91,7 +93,7 @@
   if(!GH.state.group)return GH.sheet('分享心情','<p>心情已保留在你的私人日記。加入健康圈後，就能分享給家人。</p><a class="p2-primary full" href="group.html">前往健康圈</a>');
   const posted=(GH.state.posts||[]).some(p=>p.diaryId===id);
   GH.sheet(posted?'再次分享心情':'預覽分享心情','<form id="p2-diary-share-form" class="p2-form"><p><strong>'+esc(entry.value)+'</strong> · '+esc(entry.date)+'</p><p>分享給：'+esc(GH.state.group.name)+'</p>'+(posted?'<p>這筆日記已分享過，確認後會新增一則貼文。</p>':'')+(entry.note?'<label class="p2-mood-save-option"><input type="checkbox" name="includeNote"> 加入原本的日記文字</label>':'')+'<label>補充一句話（選填）<textarea name="text" maxlength="200"></textarea></label><p class="p2-small">私人日記不會自動公開。日後修改日記，不會改動已發布貼文。</p><button class="p2-primary full">確認分享到健康圈</button></form>');
-  document.getElementById('p2-diary-share-form').onsubmit=e=>{e.preventDefault();e.target.querySelector('button').disabled=true;const f=new FormData(e.target),note=String(f.get('text')||'').trim();GH.set(s=>s.posts.unshift({id:crypto.randomUUID(),author:'我',kind:'心情分享',mood:entry.value,diaryId:id,originalDate:entry.date,createdAt:new Date().toISOString(),time:'剛剛',text:[f.has('includeNote')?entry.note:'',note].filter(Boolean).join('\n')||'分享'+entry.date+'的心情：'+entry.value,comments:[],likes:0}));GH.closeSheet();refresh?.();GH.toast('心情已分享至健康圈');};
+  document.getElementById('p2-diary-share-form').onsubmit=e=>{e.preventDefault();e.target.querySelector('button').disabled=true;const f=new FormData(e.target),note=String(f.get('text')||'').trim();GH.set(s=>s.posts.unshift({id:crypto.randomUUID(),author:'我',kind:'心情分享',mood:entry.value,diaryId:id,originalDate:entry.date,originalTime:entry.time||'',createdAt:new Date().toISOString(),time:'剛剛',text:[f.has('includeNote')?entry.note:'',note].filter(Boolean).join('\n')||'分享'+entry.date+'的心情：'+entry.value,comments:[],likes:0}));GH.closeSheet();refresh?.();GH.toast('心情已分享至健康圈');};
  }
  GH.family=window.GH_FAMILY={completedMarkup,joinPermission,weekRange,activeTasks,healthConditions,visibleCare,shareDiary,taskStatus,remember,claim,manageMembers,careConsent,evaluateCare,careCards,bindCare,relationships,period};
  document.addEventListener('DOMContentLoaded',()=>{const me=GH.state.group?.members.find(m=>m.name==='我');if(me)me.lastLoginAt=today();evaluateCare();});

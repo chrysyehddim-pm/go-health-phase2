@@ -34,7 +34,7 @@
   if(['task-next','task-joined'].includes(id)){p.members=p.members.filter(n=>n!=='我');g.members[0].joinedAt=day(0);s.records[0].date=p.start;}
   if(id==='task-game'){s.device='disconnected';s.records=[];s.healthPreferences=[];g.members.slice(1).forEach(m=>m.gameHistory=[{date:day(0),completed:true},{date:day(-1),completed:true}]);}
  }
- if(id==='mood')s.moods=[{id:'mood-1',date:day(0),value:'開心',note:'今天和家人一起散步，很開心。'},{id:'mood-2',date:day(-1),value:'疲倦',note:'想早一點休息。'}];
+ if(id==='mood')s.moods=[{id:'mood-1',date:day(0),time:'18:30',value:'開心',note:'今天和家人一起散步，很開心。'},{id:'mood-2',date:day(-1),time:'22:10',value:'疲倦',note:'想早一點休息。'}];
  if(id==='new')s.gameHistory=[];
  if(requested==='S05'){s.group.members.push({name:'阿姨',role:'成員',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)});}
  if(requested==='S06'){s.group.name='我的健康圈';s.group.members=[{name:'我',role:'圈主',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)}];s.device='disconnected';s.healthPreferences=[];s.records=[];s.gameHistory=[];}

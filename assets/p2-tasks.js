@@ -24,7 +24,7 @@
     });
   }
   const progress=t=>GH.family.taskStatus(t).count;
-  function groupCard(task) {const x=GH.family.taskStatus(task);return GH.taskCard(task,{count:x.count,joined:!!GH.state.group,claimed:x.claimed});}
+  function groupCard(task) {const x=GH.family.taskStatus(task);return GH.taskCard(task,{count:x.count,joined:!!GH.state.group,claimed:x.claimed,preview:!GH.state.group});}
   function gameCard(game) {
     return '<a class="p2-game-card p2-art-card" href="' + esc(game.url) + '" target="_blank" rel="noopener noreferrer"><div class="p2-card-art" aria-hidden="true"><img src="images/scene/' + game.image + '.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">' + esc(game.points) + '</span><h3>' + esc(game.title) + '</h3><p>' + esc(game.detail) + '</p></div><span class="p2-game-cta">開始遊戲 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
   }
@@ -49,16 +49,18 @@
     const cards = document.getElementById('p2-task-cards');
     if (category === 'group') {
       const guideTip=GH_GUIDE.tip('tasks')?GH_GUIDE.tipCard('tasks','家人一起完成，各自領取健康點','每位家人完成自己的條件；達到任務人數後，已達標者可在本週期限內各自領取。'):'';
-      cards.innerHTML = guideTip + '<div class="p2-section-head"><h2>一起完成</h2><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div><p class="p2-section-intro">每週一起完成健康或動腦目標。達標後請在本週期限內主動領取，逾期不補領。</p><div class="p2-task-grid">' + GH.family.activeTasks().map(groupCard).join('') + '</div>';
+      const tasks=GH.family.activeTasks();
+      const joinCard=!GH.state.group?'<div class="p2-card warm p2-task-join-card"><div>'+GH.art('missions')+'<div><h2>和家人一起完成任務</h2><p>建立或加入健康圈後，即可參與每週共同任務並領取健康點。</p></div></div><a class="p2-primary full" href="group.html">建立或加入健康圈</a></div>':'';
+      cards.innerHTML = guideTip + joinCard + '<div class="p2-section-head"><h2>'+(GH.state.group?'一起完成':'本週任務預覽')+'</h2>'+(GH.state.group?'<a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a>':'')+'</div><p class="p2-section-intro">'+(GH.state.group?'每週一起完成健康或動腦目標。達標後請在本週期限內主動領取，逾期不補領。':'先看看本週可和家人完成的任務；加入健康圈後才會開始計算進度。')+'</p><div class="p2-task-grid">' + (GH.state.group?tasks:tasks.slice(0,2)).map(groupCard).join('') + '</div>';
       GH_GUIDE.bind(cards);
-      if(!GH.family.activeTasks().length)cards.insertAdjacentHTML('beforeend','<div class="p2-empty"><h3>目前沒有可參與的任務</h3><p>過往成果可在參與紀錄查看。</p></div>');
+      if(!tasks.length)cards.insertAdjacentHTML('beforeend','<div class="p2-empty"><h3>目前沒有可參與的任務</h3><p>過往成果可在參與紀錄查看。</p></div>');
       cards.querySelectorAll('[data-task]').forEach(b => b.onclick = () => openTask(DATA.tasks.find(t => t.id === b.dataset.task)));
     } else {
       cards.innerHTML = '<div class="p2-section-head"><h2>腦健康遊戲</h2></div><p class="p2-section-intro">動動腦，完成遊戲後依各項任務規則累積健康點。</p><div class="p2-game-list">' + DATA.games.map(gameCard).join('') + '</div>';
     }
   }
   function openTask(task) {
-    const x=GH.family.taskStatus(task),p=x.period;if(!x.joined)return GH.sheet(task.title,'<p>'+esc(task.shortDetail)+'</p><p>加入健康圈後可與家人一起參與。</p><a class="p2-primary full" href="group.html">建立或加入健康圈</a>');if(!x.active)return GH.toast('本期任務已結束');
+    const x=GH.family.taskStatus(task),p=x.period;if(!x.joined)return GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.shortDetail)+'</p><p>這是本週共同任務預覽。加入健康圈後才會開始計算進度。</p><a class="p2-primary full" href="group.html">建立或加入健康圈</a>');if(!x.active)return GH.toast('本期任務已結束');
     GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.shortDetail)+'</p>'+(p?'<p>任務期間：'+p.start+' ～ '+p.end+' 23:59</p><p class="p2-small">請於截止前完成資料同步並領取，逾期不補領。</p>':'')+'<p><strong>'+esc(x.label)+'</strong></p>'+GH.family.completedMarkup(task)+'<p>至少 '+task.members+' 人完成解鎖。期間內，每位完成個人條件的成員都能各自領取一次，沒有先後名額限制。</p>'+(x.canClaim?'<button id="p2-claim-task" class="p2-primary full">領取 '+task.points+' 健康點</button>':x.claimed?'<div class="p2-success">已領取獎勵</div>':'<div class="p2-actions"><a class="p2-secondary" href="health.html">查看健康紀錄</a><a class="p2-secondary" href="group.html">查看健康圈</a></div>'));
     document.getElementById('p2-claim-task')?.addEventListener('click',()=>{if(!GH.family.claim(task))return;GH.closeSheet();render();GH.toast('已獲得 '+task.points+' 健康點');});
   }

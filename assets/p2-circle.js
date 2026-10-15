@@ -28,11 +28,11 @@
     return date >= new Date(Date.now() - 7 * 86400000) ? '近七天' : '更早';
   }
   function recentPosts() {
-    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 3);
+    const cutoff = new Date(Date.now() - 7 * 86400000);
     return GH.state.posts.map((post, index) => ({ post, index, date: postDate(post) }))
       .filter(item => item.date >= cutoff)
       .sort((a, b) => b.date - a.date || a.index - b.index)
-      .slice(0, 100);
+      .slice(0, 20);
   }
   const seedMembers = [
     { name: '我', role: '成員', status: '今天記錄了健康近況' },
@@ -46,7 +46,7 @@
     const group=GH.state.group,tasks=GH.family.activeTasks(),task=tasks.find(t=>GH.family.taskStatus(t).canClaim)||tasks[0],status=task&&GH.family.taskStatus(task);
     main().innerHTML='<section class="p2-circle-head"><div class="p2-row"><h1 class="p2-page-title">'+esc(group.name)+'</h1><button id="p2-group-menu" class="p2-round-button" aria-label="健康圈設定"><i class="fa-solid fa-ellipsis"></i></button></div><button id="p2-members" class="p2-member-entry"><span class="p2-avatar-stack">'+group.members.slice(0,4).map(m=>'<span>'+esc(displayName(m.name).slice(0,1))+'</span>').join('')+'</span><span>'+group.members.length+'/5 位成員 <i class="fa-solid fa-chevron-right"></i></span></button></section>'+
     (task?'<section class="p2-card p2-weekly-summary"><div class="p2-section-head"><h2>本週共同任務</h2><a href="activities.html">查看全部</a></div><h3>'+esc(task.title)+'</h3><p>'+esc(status.label)+' · '+status.count+' 人完成</p>'+GH.family.completedMarkup(task)+'<small>請於 '+status.period.end+' 23:59 前完成並領取</small><div class="p2-actions">'+(status.canClaim?'<button id="p2-summary-claim" class="p2-primary">領取 '+task.points+' 點</button>':'<a class="p2-secondary" href="activities.html">查看任務</a>')+'</div></section>':'')+
-    '<section><button id="p2-share-entry" class="p2-primary full"><i class="fa-solid fa-pen"></i> 分享近況</button></section><section><div class="p2-section-head"><h2>家人近況</h2><span class="p2-subtle">最近三個月</span></div><div id="p2-circle-feed"></div></section>';
+    '<section><button id="p2-share-entry" class="p2-primary full"><i class="fa-solid fa-pen"></i> 分享近況</button></section><section><div class="p2-section-head"><h2>家人近況</h2><span class="p2-subtle">近 7 天 · 最多 20 筆</span></div><div id="p2-circle-feed"></div></section>';
     GH.scene('circle');renderFeed();
     document.getElementById('p2-group-menu').onclick=groupSettings;
     document.getElementById('p2-members').onclick=memberList;
@@ -127,7 +127,7 @@
     };
   }
   function postMarkup(p) {
-    return '<article class="p2-social-post"><div class="p2-post-heading"><span class="p2-avatar">' + esc(p.author.slice(0, 1)) + '</span><div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate):'') + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '"><i class="fa-regular fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 回應 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + ((p.comments||[]).length?'<details class="p2-post-comments"><summary>查看留言 '+p.comments.length+' 則</summary>'+ (p.comments || []).map(c => '<div class="p2-comment"><strong>' + esc(displayName(c.author)) + '：</strong>' + esc(c.text) + '</div>').join('')+'</details>':'') + '</article>';
+    return '<article class="p2-social-post"><div class="p2-post-heading"><span class="p2-avatar">' + esc(p.author.slice(0, 1)) + '</span><div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate)+(p.originalTime?' '+esc(p.originalTime):''):'') + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '" aria-pressed="'+(p.likedByMe?'true':'false')+'"><i class="'+(p.likedByMe?'fa-solid':'fa-regular')+' fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 回應 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + ((p.comments||[]).length?'<details class="p2-post-comments"><summary>查看留言 '+p.comments.length+' 則</summary>'+ (p.comments || []).map(c => '<div class="p2-comment"><strong>' + esc(displayName(c.author)) + '：</strong>' + esc(c.text) + '</div>').join('')+'</details>':'') + '</article>';
   }
   function renderFeed() {
     const node = document.getElementById('p2-circle-feed'); if (!node) return;
@@ -142,7 +142,7 @@
     node.innerHTML = GH.family.careCards() + (posts.length ? '<div class="p2-feed">' + shown + '</div>' + (visiblePosts < posts.length ? '<button id="p2-more-posts" class="p2-secondary full p2-more-posts">載入更多近況</button>' : '') : '<div class="p2-empty"><i class="fa-regular fa-comments"></i><h3>最近還沒有近況</h3><p>分享今天的一件小事，開啟健康圈的對話。</p></div>');GH.family.bindCare(renderFeed);
     const more = document.getElementById('p2-more-posts');
     if (more) more.onclick = () => { visiblePosts += 10; renderFeed(); };
-    node.querySelectorAll('[data-like]').forEach(b => b.onclick = () => { GH.set(s => { const p = s.posts.find(x => x.id === b.dataset.like); if (p) p.likes = Number(p.likes || 0) + 1; }); renderFeed(); });
+    node.querySelectorAll('[data-like]').forEach(b => b.onclick = () => { GH.set(s => { const p = s.posts.find(x => x.id === b.dataset.like); if (!p) return; p.likedByMe=!p.likedByMe;p.likes=Math.max(0,Number(p.likes||0)+(p.likedByMe?1:-1)); }); renderFeed(); });
     node.querySelectorAll('[data-comment]').forEach(b => b.onclick = () => comment(b.dataset.comment));
   }
   function compose() {

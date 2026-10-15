@@ -35,19 +35,19 @@
     GH.scene('explore');
   }
   function renderArticles() {
-    const articles = window.GH_ARTICLES || [];
+    const articles = [...(window.GH_ARTICLES || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''),'zh-TW'));
     const recommendedTopics = new Set([44, 33, 16, 27, 39, 43, 8, 49]);
     const recommended = articles.filter(a => recommendedTopics.has(Number(a.id))).sort((a, b) => recommendScore(b) - recommendScore(a));
     const recommendedIds = new Set(recommended.map(a => a.id));
     const cats = ['推薦', '全部', '動腦與記憶', '心情與睡眠', '活動與身體', '心血管與健康知識'];
     let cat = '推薦'; let query = ''; let shown = 10;
     const panel = document.getElementById('p2-discovery-panel');
-    panel.innerHTML = '<div class="p2-section-head"><h2>亞東醫院健康文章</h2></div><label class="sr-only" for="p2-article-search">搜尋健康文章</label><input class="p2-input" id="p2-article-search" type="search" placeholder="搜尋標題、主題或科別"><div class="p2-pill-row" id="p2-article-filters"></div><div id="p2-article-list"></div>';
+    panel.innerHTML = '<div class="p2-section-head"><h2>健康文章</h2></div><label class="sr-only" for="p2-article-search">搜尋健康文章</label><input class="p2-input" id="p2-article-search" type="search" placeholder="搜尋標題、主題或科別"><div class="p2-pill-row p2-article-filters" id="p2-article-filters"></div><div id="p2-article-list"></div>';
     const draw = () => {
       document.getElementById('p2-article-filters').innerHTML = cats.map(c => '<button data-cat="' + c + '" class="' + (c === cat ? 'active' : '') + '">' + c + '</button>').join('');
       const base = cat === '推薦' ? recommended : articles.filter(a => cat === '全部' || GH.articleCategory(a) === cat);
       const found = base.filter(a => !query || [a.title, a.department, ...(a.tags || [])].join(' ').toLowerCase().includes(query));
-      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map(a => '<a data-article="' + esc(a.id) + '" class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + '<span><strong>' + esc(a.title) + '</strong><small>' + esc(a.department) + ' · ' + esc(a.date) + '</small>' + (recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</span></a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
+      document.getElementById('p2-article-list').innerHTML = found.length ? '<p class="p2-subtle">共 ' + found.length + ' 篇</p><div class="p2-list">' + found.slice(0, shown).map((a,index) => '<a data-article="' + esc(a.id) + '" class="p2-article-card" href="article.html?id=' + encodeURIComponent(a.id) + '">' + '<span><strong>' + esc(a.title) + '</strong><small>亞東醫院 · ' + esc(a.department) + ' · ' + esc(a.date) + '</small>' + (cat==='推薦'&&index<3?'<em class="hot">熱門</em>':recommendedIds.has(a.id) ? '<em>推薦</em>' : '') + '</span></a>').join('') + '</div>' + (shown < found.length ? '<button id="p2-more-articles" class="p2-secondary full" style="margin-top:14px">載入更多文章</button>' : '') : '<div class="p2-empty"><i class="fa-solid fa-magnifying-glass"></i><h3>找不到符合的文章</h3><p>試試其他關鍵字或分類。</p></div>';
       document.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { cat = b.dataset.cat; shown = 10; draw(); });
       panel.querySelectorAll('[data-article]').forEach(b=>b.onclick=e=>{e.preventDefault();articlePopup(articles.find(a=>String(a.id)===b.dataset.article));});
       const more = document.getElementById('p2-more-articles'); if (more) more.onclick = () => { shown += 10; draw(); };
@@ -57,26 +57,31 @@
   }
   function renderPlaces() {
     const panel = document.getElementById('p2-discovery-panel');
-    panel.innerHTML = '<div class="p2-section-head"><h2>探索去處</h2></div><p class="p2-section-intro">選擇地點後，可查看周邊公園、餐飲與運動場所。</p><div class="p2-actions"><button id="p2-my-location" class="p2-primary"><i class="fa-solid fa-location-crosshairs"></i> 使用我的位置</button><button id="p2-city-location" class="p2-secondary">探索台北市</button></div><div id="p2-map" class="p2-map fallback" style="margin-top:14px"><div class="message">選擇位置，查看地圖與周邊去處</div></div><div class="p2-pill-row" id="p2-place-cats" style="margin-top:16px"></div><div id="p2-place-list"></div><p class="p2-subtle">地點資訊由 Google Maps 提供；營業資訊請以地點頁面為準。</p>';
+    panel.innerHTML = '<div class="p2-section-head"><h2>附近健康服務</h2></div><p class="p2-section-intro">使用目前位置或選擇地區，查看營運精選的健康去處。</p><div class="p2-actions"><button id="p2-my-location" class="p2-primary"><i class="fa-solid fa-location-crosshairs"></i> 使用我的位置</button><button id="p2-city-location" class="p2-secondary">選擇地區</button></div><p id="p2-place-location-label" class="p2-small p2-muted">尚未選擇位置</p><div id="p2-map" class="p2-map fallback" style="margin-top:14px"><div class="message">選擇位置，查看地圖與精選去處</div></div><div class="p2-pill-row" id="p2-place-cats" style="margin-top:16px"></div><div id="p2-place-list"></div><p class="p2-subtle">清單由 GO HEALTH 維護，地圖與路線由 Google Maps 提供；營業資訊請以地點頁面為準。</p>';
     let places = []; let cat = '全部';
-    const cats = ['全部', '公園', '餐飲', '運動'];
+    const cats = ['全部', '健康飲食', '公園步道', '運動場所', '醫院診所', '藥局'];
     const draw = () => {
       document.getElementById('p2-place-cats').innerHTML = cats.map(c => '<button data-place-cat="' + c + '" class="' + (cat === c ? 'active' : '') + '">' + c + '</button>').join('');
       const found = places.filter(p => cat === '全部' || p.type === cat);
-      document.getElementById('p2-place-list').innerHTML = found.length ? '<div class="p2-list">' + found.map((p, i) => '<button class="p2-list-card" data-place="' + i + '">' + icon(p.icon || 'fa-location-dot') + '<span class="body"><strong>' + esc(p.name) + '</strong><small>' + esc(p.type) + ' · ' + esc(p.address || '') + '</small></span><i class="fa-solid fa-chevron-right chevron"></i></button>').join('') + '</div>' : '<div class="p2-empty"><i class="fa-solid fa-map-location-dot"></i><h3>' + (places.length ? '此分類沒有地點' : '選擇位置開始探索') + '</h3></div>';
+      document.getElementById('p2-place-list').innerHTML = found.length ? '<div class="p2-list">' + found.map((p, i) => '<button class="p2-list-card" data-place="' + i + '">' + icon(p.icon || 'fa-location-dot') + '<span class="body"><strong>' + esc(p.name) + '</strong><small>' + esc(p.type) + ' · ' + esc(p.source||'GO HEALTH 精選') + (Number.isFinite(p.distance)?' · 約 '+(p.distance<1?Math.round(p.distance*1000)+' 公尺':p.distance.toFixed(1)+' 公里'):'') + '</small><small>' + esc(p.address || '') + '</small></span><i class="fa-solid fa-chevron-right chevron"></i></button>').join('') + '</div>' : '<div class="p2-empty"><i class="fa-solid fa-map-location-dot"></i><h3>' + (places.length ? '此分類目前沒有精選地點' : '選擇位置開始探索') + '</h3></div>';
       document.querySelectorAll('[data-place-cat]').forEach(b => b.onclick = () => { cat = b.dataset.placeCat; draw(); });
       document.querySelectorAll('[data-place]').forEach(b => b.onclick = () => openPlace(found[Number(b.dataset.place)]));
     };
-    const load = async (lat, lng) => {
+    const load = async (lat, lng, label) => {
       const map = document.getElementById('p2-map');
-      map.innerHTML = '<div class="message">正在尋找周邊去處…</div>';
+      map.innerHTML = '<div class="message">正在載入地圖與精選去處…</div>';
+      document.getElementById('p2-place-location-label').textContent='目前位置：'+label;
       try { places = await window.GH_MAPS.load(lat, lng, map); draw(); if (!places.length) GH.toast('附近暫無搜尋結果'); }
       catch (_) { map.classList.add('fallback'); map.innerHTML = '<div class="message">地圖暫時無法載入，請稍後再試</div>'; GH.toast('地圖服務暫時無法使用'); }
     };
-    document.getElementById('p2-city-location').onclick = () => load(25.033, 121.565);
+    document.getElementById('p2-city-location').onclick = () => {
+      GH.sheet('選擇地區','<div class="p2-list"><button class="p2-list-card" data-area="taipei"><span class="body"><strong>台北市中心</strong><small>信義、大安與中正區</small></span><i class="fa-solid fa-chevron-right"></i></button><button class="p2-list-card" data-area="banqiao"><span class="body"><strong>新北市板橋區</strong><small>板橋與亞東醫院周邊</small></span><i class="fa-solid fa-chevron-right"></i></button></div>');
+      document.querySelector('[data-area=taipei]').onclick=()=>{GH.closeSheet();load(25.033,121.565,'台北市中心');};
+      document.querySelector('[data-area=banqiao]').onclick=()=>{GH.closeSheet();load(24.997,121.452,'新北市板橋區');};
+    };
     document.getElementById('p2-my-location').onclick = () => {
       if (!navigator.geolocation) return GH.toast('目前無法取得位置');
-      navigator.geolocation.getCurrentPosition(pos => load(pos.coords.latitude, pos.coords.longitude), () => GH.toast('尚未取得位置授權，仍可探索台北市'), { timeout: 10000 });
+      navigator.geolocation.getCurrentPosition(pos => load(pos.coords.latitude, pos.coords.longitude,'我的位置'), () => GH.toast('尚未取得位置授權，也可以手動選擇地區'), { timeout: 10000 });
     };
     draw();
   }

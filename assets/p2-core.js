@@ -100,11 +100,13 @@
     const href = options.href;
     const tag = href ? 'a' : 'article';
     const image = 'images/scene/' + (task.image || 'task-walk') + '.webp';
-    return '<' + tag + ' class="p2-task-card p2-art-card ' + (href ? 'p2-illustrated-task' : '') + '"' + (href ? ' href="' + escape(href) + '"' : '') + '>' +
+    const stateClass = options.preview?'is-preview':status?.claimed?'is-claimed':status?.canClaim?'is-ready':status?.self?'is-self-complete':status?.unlocked?'is-unlocked':'is-waiting';
+    const actionLabel = status?.claimed?'查看成果':status?.canClaim?'領取獎勵':'查看任務';
+    return '<' + tag + ' class="p2-task-card p2-art-card ' + stateClass + ' ' + (href ? 'p2-illustrated-task' : '') + '"' + (href ? ' href="' + escape(href) + '"' : '') + '>' +
       '<div class="p2-card-art" aria-hidden="true"><img src="' + image + '" alt="" loading="lazy"></div>' +
-      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p><p class="p2-task-personal-status">'+escape(status?.label || '')+'</p></div>' +
-      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? (status?.unlocked?'已解鎖 · '+count+' 人完成':'已達成 ' + count + '／' + task.members + ' 人') : '加入健康圈完成任務') + '</span>' +
-      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + (options.claimed ? '查看成果' : '查看任務') + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+(status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'')+'</' + tag + '>';
+      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p>'+(options.joined?'<p class="p2-task-personal-status">'+escape(status?.label || '')+'</p>':'')+'</div>' +
+      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? (status?.unlocked?'已解鎖 · '+count+' 人完成':'已達成 ' + count + '／' + task.members + ' 人') : '共同任務預覽') + '</span>' +
+      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + actionLabel + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+(status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'')+'</' + tag + '>';
   }
   function shell(active, title) {
     const header = document.getElementById('p2-header');

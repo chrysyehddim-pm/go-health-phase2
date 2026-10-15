@@ -60,10 +60,19 @@
   }
   function permissionForm() {
     const connected = GH.state.device === 'connected';
-    GH.sheet('選擇健康資料項目', '<form id="p2-permissions-form" class="p2-form"><p>選擇允許 GO HEALTH 從 HAPPY GO App 讀取的項目。</p><fieldset class="p2-health-choices"><legend>同意讀取的資料</legend>' + types.map(([type])=>'<label class="p2-health-choice"><input type="checkbox" name="healthType" value="' + type + '"' + (GH.state.healthPreferences.includes(type)?' checked':'') + '>' + GH.art(type) + '<span><strong>' + GH.metric(type).name + '</strong><small>' + metricHelp(type) + '</small></span></label>').join('') + '</fieldset><div class="p2-privacy"><i class="fa-solid fa-lock"></i><span>只讀取所選項目，不修改手機健康紀錄。資料也用於共同任務完成判定；圈內只顯示任務進度，不公開原始數值。</span></div><p class="p2-small p2-muted">同意讀取不代表手機已有資料。日後新增讀取項目時，會再請你確認。</p><div class="p2-actions"><button id="p2-confirm-health" class="p2-primary" disabled>' + (connected?'儲存並更新':'同意並連接') + '</button><button type="button" class="p2-secondary" data-close-sheet>暫時不要</button></div></form>');
+    const allSelected = types.every(([type])=>GH.state.healthPreferences.includes(type));
+    GH.sheet('選擇健康資料項目', '<form id="p2-permissions-form" class="p2-form"><p>選擇允許 GO HEALTH 從 HAPPY GO App 讀取的項目。</p><fieldset class="p2-health-choices"><legend>同意讀取的資料</legend><label class="p2-health-choice p2-health-choice-all"><input type="checkbox" id="p2-health-select-all"' + (allSelected?' checked':'') + '><span class="p2-select-all-icon"><i class="fa-solid fa-check-double"></i></span><span><strong>全部選取</strong><small>一次同意讀取下列全部健康資料。</small></span></label>' + types.map(([type])=>'<label class="p2-health-choice"><input type="checkbox" name="healthType" value="' + type + '"' + (GH.state.healthPreferences.includes(type)?' checked':'') + '>' + GH.art(type) + '<span><strong>' + GH.metric(type).name + '</strong><small>' + metricHelp(type) + '</small></span></label>').join('') + '</fieldset><div class="p2-privacy"><i class="fa-solid fa-lock"></i><span>只讀取所選項目，不修改手機健康紀錄。資料也用於共同任務完成判定；圈內只顯示任務進度，不公開原始數值。</span></div><p class="p2-small p2-muted">同意讀取不代表手機已有資料。日後新增讀取項目時，會再請你確認。</p><div class="p2-actions"><button id="p2-confirm-health" class="p2-primary" disabled>' + (connected?'儲存並更新':'同意並連接') + '</button><button type="button" class="p2-secondary" data-close-sheet>暫時不要</button></div></form>');
     const form = document.getElementById('p2-permissions-form');
-    const refresh = () => {document.getElementById('p2-confirm-health').disabled = !form.querySelector('[name=healthType]:checked');};
-    form.onchange = refresh;refresh();
+    const selectAll = document.getElementById('p2-health-select-all');
+    const choices = [...form.querySelectorAll('[name=healthType]')];
+    const refresh = () => {
+      const selected = choices.filter(input=>input.checked).length;
+      selectAll.checked = selected === choices.length;
+      selectAll.indeterminate = selected > 0 && selected < choices.length;
+      document.getElementById('p2-confirm-health').disabled = selected === 0;
+    };
+    selectAll.onchange = () => { choices.forEach(input=>{input.checked=selectAll.checked;}); refresh(); };
+    choices.forEach(input=>input.addEventListener('change',refresh));refresh();
     form.onsubmit = async e => {
       e.preventDefault();
       const selected = new FormData(form).getAll('healthType').filter(t=>types.some(x=>x[0]===t));
@@ -99,8 +108,11 @@
   function renderMood() {
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 3);
     const iso = cutoff.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
-    const entries = [...GH.state.moods.map(x => ({ ...x, mood: x.value, note: x.note || '' })), ...GH.state.diaries.map(x => ({ ...x, mood: '', note: x.value }))].filter(x => x.date >= iso).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 100);
-    main().innerHTML = recordHeader(true) + '<section><button id="p2-add-mood" class="p2-primary full"><i class="fa-solid fa-pen"></i> 記下今天</button></section><section><div class="p2-section-head"><h2>最近三個月</h2><span class="p2-subtle">' + entries.length + '／100 筆</span></div>' + (entries.length ? '<div class="p2-journal-list">' + entries.slice(0,moodShown).map(x => '<article class="p2-card"><div class="p2-row"><strong>' + esc(x.date) + '</strong>' + (x.mood ? '<span class="p2-journal-mood">' + moodArt(x.mood) + '<span>' + esc(x.mood) + '</span></span>' : '') + '</div>' + (x.note ? '<p>' + esc(x.note) + '</p>' : '') + (x.mood?'<button class="p2-text-button" data-share-diary="'+esc(x.id)+'">'+(GH.state.posts.some(p=>p.diaryId===x.id)?'已分享 · 再次分享':'分享到健康圈')+'</button>':'')+'</article>').join('') + '</div>' : '<div class="p2-empty">' + GH.art('journal') + '<h3>還沒有心情日記</h3><p>從今天的一句話開始。</p></div>') + '</section>';
+    const entries = [...GH.state.moods.map(x => ({ ...x, mood: x.value, note: x.note || '' })), ...GH.state.diaries.map(x => ({ ...x, mood: '', note: x.value }))].filter(x => x.date >= iso).sort((a, b) => (b.date+' '+(b.time||'00:00')).localeCompare(a.date+' '+(a.time||'00:00'))).slice(0, 100);
+    const month = today().slice(0,7), monthly = entries.filter(x=>x.mood&&x.date.startsWith(month));
+    const moodCount = moods.map(([label,key])=>({label,key,count:monthly.filter(x=>x.mood===label).length})).filter(x=>x.count).sort((a,b)=>b.count-a.count);
+    const jar = '<section class="p2-card p2-mood-jar"><div><p class="p2-eyebrow">本月心情罐</p><h2>'+(moodCount[0]?'最近最常感到「'+esc(moodCount[0].label)+'」':'從今天開始收集心情')+'</h2><p>'+(monthly.length?'已記下 '+monthly.length+' 次心情，留下自己的生活節奏。':'每次記錄一點感受，慢慢看見自己的變化。')+'</p></div><div class="p2-mood-jar-icons">'+(moodCount.length?moodCount.slice(0,3).map(x=>'<span>'+moodArt(x.label)+'<small>'+esc(x.label)+' '+x.count+'</small></span>').join(''):moodArt('平靜'))+'</div></section>';
+    main().innerHTML = recordHeader(true) + jar + '<section><button id="p2-add-mood" class="p2-primary full"><i class="fa-solid fa-pen"></i> 記下今天</button></section><section><div class="p2-section-head"><h2>最近三個月</h2><span class="p2-subtle">' + entries.length + '／100 筆</span></div>' + (entries.length ? '<div class="p2-journal-list">' + entries.slice(0,moodShown).map(x => '<article class="p2-card"><div class="p2-row"><strong>' + esc(x.date) + (x.time?' '+esc(x.time):'') + '</strong>' + (x.mood ? '<span class="p2-journal-mood">' + moodArt(x.mood) + '<span>' + esc(x.mood) + '</span></span>' : '') + '</div>' + (x.note ? '<p>' + esc(x.note) + '</p>' : '') + (x.mood?'<button class="p2-text-button" data-share-diary="'+esc(x.id)+'">'+(GH.state.posts.some(p=>p.diaryId===x.id)?'已分享 · 再次分享':'分享到健康圈')+'</button>':'')+'</article>').join('') + '</div>' : '<div class="p2-empty">' + GH.art('journal') + '<h3>還沒有心情日記</h3><p>從今天的一句話開始。</p></div>') + '</section>';
     if(entries.length>moodShown)main().insertAdjacentHTML('beforeend','<button id="p2-more-moods" class="p2-secondary full">載入更多心情紀錄</button>');
     document.getElementById('p2-more-moods')?.addEventListener('click',()=>{moodShown+=10;renderMood();});
     main().querySelectorAll('[data-share-diary]').forEach(b=>b.onclick=()=>GH.family.shareDiary(b.dataset.shareDiary,renderMood));
@@ -108,14 +120,15 @@
     GH.scene('records');
   }
   function moodForm() {
-    GH.sheet('記下今天', '<form id="p2-mood-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>今天的心情</legend>' + moods.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="' + label + '" required>' + GH.art('mood-'+key) + '<span>' + label + '</span><i class="fa-solid fa-check" aria-hidden="true"></i></label>').join('') + '</fieldset><label>想記下什麼？<textarea name="note" maxlength="500" placeholder="寫下今天的一件小事"></textarea></label><button id="p2-save-mood" class="p2-primary full" disabled>儲存心情日記</button></form>');
+    const now = new Date().toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hour12:false});
+    GH.sheet('記下今天', '<form id="p2-mood-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>今天的心情</legend>' + moods.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="' + label + '" required>' + GH.art('mood-'+key) + '<span>' + label + '</span><i class="fa-solid fa-check" aria-hidden="true"></i></label>').join('') + '</fieldset><label>記錄時間<input type="time" name="time" value="'+now+'" required></label><label>想記下什麼？<textarea name="note" maxlength="500" placeholder="寫下今天的一件小事"></textarea></label><button id="p2-save-mood" class="p2-primary full" disabled>儲存心情日記</button></form>');
     const form=document.getElementById('p2-mood-form');
     form.onchange=()=>{document.getElementById('p2-save-mood').disabled=!form.querySelector('[name=mood]:checked');};
     form.onsubmit = e => {
       e.preventDefault();const f=new FormData(form),mood=String(f.get('mood'));
       if(!moods.some(x=>x[0]===mood))return;
       document.getElementById('p2-save-mood').disabled=true;
-      const id=crypto.randomUUID();GH.set(s=>s.moods.push({id,value:mood,note:String(f.get('note')||'').trim(),date:today()}));
+      const id=crypto.randomUUID();GH.set(s=>s.moods.push({id,value:mood,note:String(f.get('note')||'').trim(),date:today(),time:String(f.get('time')||'')}));
       GH.closeSheet();renderMood();GH.sheet('心情日記已儲存','<p>日記已私人保存。也可以主動分享心情給家人。</p><div class="p2-actions"><button id="p2-share-saved-diary" class="p2-primary">分享到健康圈</button><button class="p2-secondary" data-close-sheet>完成</button></div>');document.getElementById('p2-share-saved-diary').onclick=()=>GH.family.shareDiary(id,renderMood);
     };
   }
