@@ -30,15 +30,13 @@
   }
   function render() {
     GH.shell('任務', '任務中心');
-    main().innerHTML = '<section><p class="p2-eyebrow">一起累積健康生活</p><h1 class="p2-page-title">任務中心</h1><p class="p2-lead">選一件今天想做的事，慢慢累積自己的成果。</p></section><section class="p2-task-history-entry"><button data-view="' + (view==='history'?'list':'history') + '" class="p2-text-button">' + (view==='history'?'返回任務':'參與紀錄') + ' <i class="fa-solid fa-chevron-right"></i></button></section><section id="p2-task-content"></section>';
-    const historyEntry=main().querySelector('.p2-task-history-entry');
-    const title=main().querySelector('h1');
-    const titleRow=document.createElement('div');titleRow.className='p2-row p2-task-title-row';
-    title.replaceWith(titleRow);titleRow.append(title,historyEntry.querySelector('button'));historyEntry.remove();
+    const history=view==='history';
+    main().innerHTML = history?'<section class="p2-plain-title"><button data-view="list" class="p2-text-button p2-back-button"><i class="fa-solid fa-arrow-left"></i> 返回任務中心</button><p class="p2-eyebrow">近三個月的健康足跡</p><h1 class="p2-page-title">參與紀錄</h1><p class="p2-lead">查看個人遊戲與健康圈共同任務成果。</p></section><section id="p2-task-content"></section>':'<section><p class="p2-eyebrow">一起累積健康生活</p><div class="p2-row p2-task-title-row"><h1 class="p2-page-title">任務中心</h1><button data-view="history" class="p2-text-button">參與紀錄 <i class="fa-solid fa-chevron-right"></i></button></div><p class="p2-lead">選一件今天想做的事，慢慢累積自己的成果。</p></section><section id="p2-task-content"></section>';
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { view = b.dataset.view; shown = 20; render(); });
 
     if (view === 'list') renderList(); else renderHistory();
     GH.scene('tasks');
+    document.getElementById('app-root')?.classList.toggle('p2-plain-page',history);
   }
   function renderList() {
     const node = document.getElementById('p2-task-content');

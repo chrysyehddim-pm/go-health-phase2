@@ -108,28 +108,48 @@
   function renderMood() {
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 3);
     const iso = cutoff.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
-    const entries = [...GH.state.moods.map(x => ({ ...x, mood: x.value, note: x.note || '' })), ...GH.state.diaries.map(x => ({ ...x, mood: '', note: x.value }))].filter(x => x.date >= iso).sort((a, b) => (b.date+' '+(b.time||'00:00')).localeCompare(a.date+' '+(a.time||'00:00'))).slice(0, 100);
-    const month = today().slice(0,7), monthly = entries.filter(x=>x.mood&&x.date.startsWith(month));
-    const moodCount = moods.map(([label,key])=>({label,key,count:monthly.filter(x=>x.mood===label).length})).filter(x=>x.count).sort((a,b)=>b.count-a.count);
-    const jar = '<section class="p2-card p2-mood-jar"><div><p class="p2-eyebrow">本月心情罐</p><h2>'+(moodCount[0]?'最近最常感到「'+esc(moodCount[0].label)+'」':'從今天開始收集心情')+'</h2><p>'+(monthly.length?'已記下 '+monthly.length+' 次心情，留下自己的生活節奏。':'每次記錄一點感受，慢慢看見自己的變化。')+'</p></div><div class="p2-mood-jar-icons">'+(moodCount.length?moodCount.slice(0,3).map(x=>'<span>'+moodArt(x.label)+'<small>'+esc(x.label)+' '+x.count+'</small></span>').join(''):moodArt('平靜'))+'</div></section>';
-    main().innerHTML = recordHeader(true) + jar + '<section><button id="p2-add-mood" class="p2-primary full"><i class="fa-solid fa-pen"></i> 記下今天</button></section><section><div class="p2-section-head"><h2>最近三個月</h2><span class="p2-subtle">' + entries.length + '／100 筆</span></div>' + (entries.length ? '<div class="p2-journal-list">' + entries.slice(0,moodShown).map(x => '<article class="p2-card"><div class="p2-row"><strong>' + esc(x.date) + (x.time?' '+esc(x.time):'') + '</strong>' + (x.mood ? '<span class="p2-journal-mood">' + moodArt(x.mood) + '<span>' + esc(x.mood) + '</span></span>' : '') + '</div>' + (x.note ? '<p>' + esc(x.note) + '</p>' : '') + (x.mood?'<button class="p2-text-button" data-share-diary="'+esc(x.id)+'">'+(GH.state.posts.some(p=>p.diaryId===x.id)?'已分享 · 再次分享':'分享到健康圈')+'</button>':'')+'</article>').join('') + '</div>' : '<div class="p2-empty">' + GH.art('journal') + '<h3>還沒有心情日記</h3><p>從今天的一句話開始。</p></div>') + '</section>';
+    const allEntries = [...GH.state.moods.map(x => ({ ...x, mood: x.value, note: x.note || '' })), ...GH.state.diaries.map(x => ({ ...x, mood: '', note: x.value }))].filter(x => x.date >= iso).sort((a, b) => (b.date+' '+(b.time||'00:00')).localeCompare(a.date+' '+(a.time||'00:00')));
+    const entries = allEntries.slice(0, 100);
+    const thirtyDaysAgo = new Date(Date.now()-29*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});
+    const recentMood = allEntries.filter(x=>x.mood&&x.date>=thirtyDaysAgo);
+    const moodDays=[...recentMood.reduce((map,item)=>{if(!map.has(item.date))map.set(item.date,[]);map.get(item.date).push(item);return map;},new Map())].map(([date,items])=>({date,items,latest:items[0]}));
+    const moodCount = moods.map(([label,key])=>({label,key,count:moodDays.filter(x=>x.latest.mood===label).length})).filter(x=>x.count).sort((a,b)=>b.count-a.count);
+    const balls = moodDays.slice().reverse().map((day,i)=>'<button class="p2-mood-ball mood-'+esc(moods.find(m=>m[0]===day.latest.mood)?.[1]||'calm')+'" data-mood-date="'+esc(day.date)+'" style="--ball-index:'+i+'" aria-label="'+esc(day.date+' '+day.latest.mood+(day.items.length>1?'，共 '+day.items.length+' 筆':''))+'">'+moodArt(day.latest.mood)+(day.items.length>1?'<span class="p2-mood-count">'+day.items.length+'</span>':'')+'</button>').join('');
+    const density=moodDays.length>20?'high':moodDays.length>12?'medium':'low';
+    const jar = '<section class="p2-card p2-mood-jar"><div class="p2-section-head"><div><p class="p2-eyebrow">近 30 天</p><h2>我的心情罐</h2></div><span class="p2-subtle">'+moodDays.length+' 天 · '+recentMood.length+' 筆</span></div><p>'+(moodCount[0]?'近 30 天有 '+moodDays.length+' 天留下心情，共 '+recentMood.length+' 筆紀錄。最常出現的是「'+esc(moodCount[0].label)+'」。':'每天會留下最近一筆心情球；同一天的其他紀錄也會完整保留。')+'</p><div class="p2-jar-stage density-'+density+'"><img class="p2-jar-art" src="images/illustrations/mood-jar.webp" alt="" aria-hidden="true"><div class="p2-jar-balls">'+(balls||'<div class="p2-jar-empty">今天的第一顆心情球，等你放進來</div>')+'</div></div><div class="p2-mood-legend">'+moodCount.map(x=>'<span>'+moodArt(x.label)+esc(x.label)+' '+x.count+' 天</span>').join('')+'</div></section>';
+    main().innerHTML = recordHeader(true) + jar + '<section><button id="p2-add-mood" class="p2-primary full"><i class="fa-solid fa-pen"></i> 記下今天</button></section><section><div class="p2-section-head"><h2>最近三個月</h2><span class="p2-subtle">' + entries.length + '／100 筆</span></div>' + (entries.length ? '<div class="p2-journal-list">' + entries.slice(0,moodShown).map(x => '<article class="p2-card"><div class="p2-row"><strong>' + esc(x.date) + (x.time?' '+esc(x.time):'') + '</strong>' + (x.mood ? '<span class="p2-journal-mood">' + moodArt(x.mood) + '<span>' + esc(x.mood) + '</span></span>' : '') + '</div>' + (x.note ? '<p>' + esc(x.note) + '</p>' : '') + (x.mood?'<div class="p2-journal-actions"><button class="p2-text-button" data-edit-mood="'+esc(x.id)+'"><i class="fa-solid fa-pen"></i> 編輯</button><button class="p2-text-button" data-share-diary="'+esc(x.id)+'">'+(GH.state.posts.some(p=>p.diaryId===x.id)?'已分享 · 再次分享':'分享到健康圈')+'</button></div>':'')+'</article>').join('') + '</div>' : '<div class="p2-empty">' + GH.art('journal') + '<h3>還沒有心情日記</h3><p>從今天的一句話開始。</p></div>') + '</section>';
     if(entries.length>moodShown)main().insertAdjacentHTML('beforeend','<button id="p2-more-moods" class="p2-secondary full">載入更多心情紀錄</button>');
     document.getElementById('p2-more-moods')?.addEventListener('click',()=>{moodShown+=10;renderMood();});
     main().querySelectorAll('[data-share-diary]').forEach(b=>b.onclick=()=>GH.family.shareDiary(b.dataset.shareDiary,renderMood));
-    document.getElementById('p2-add-mood').onclick = moodForm;
+    main().querySelectorAll('[data-edit-mood]').forEach(b=>b.onclick=()=>moodForm(GH.state.moods.find(x=>x.id===b.dataset.editMood)));
+    main().querySelectorAll('[data-mood-date]').forEach(b=>b.onclick=()=>openMoodDay(b.dataset.moodDate));
+    document.getElementById('p2-add-mood').onclick = ()=>moodForm();
     GH.scene('records');
   }
-  function moodForm() {
+  function openMood(id){
+    const entry=GH.state.moods.find(x=>x.id===id);if(!entry)return;
+    GH.sheet(entry.date+' 的心情','<div class="p2-mood-detail">'+moodArt(entry.value)+'<h3>'+esc(entry.value)+'</h3><p class="p2-subtle">'+esc(entry.date)+(entry.time?' '+esc(entry.time):'')+'</p>'+(entry.note?'<p>'+esc(entry.note)+'</p>':'<p class="p2-muted">這天沒有留下文字。</p>')+'<div class="p2-actions"><button id="p2-edit-open-mood" class="p2-secondary">編輯日記</button><button id="p2-share-open-mood" class="p2-primary">分享到健康圈</button></div></div>');
+    document.getElementById('p2-edit-open-mood').onclick=()=>moodForm(entry);document.getElementById('p2-share-open-mood').onclick=()=>GH.family.shareDiary(id,renderMood);
+  }
+  function openMoodDay(date){
+    const items=GH.state.moods.filter(x=>x.date===date).sort((a,b)=>(b.time||'00:00').localeCompare(a.time||'00:00'));
+    if(!items.length)return;
+    if(items.length===1)return openMood(items[0].id);
+    GH.sheet(date+' 的心情','<p class="p2-subtle">這天共留下 '+items.length+' 筆心情紀錄，心情罐以最後一筆代表當天。</p><div class="p2-mood-day-list">'+items.map(entry=>'<article class="p2-card"><div class="p2-row"><span class="p2-journal-mood">'+moodArt(entry.value)+'<strong>'+esc(entry.value)+'</strong></span><time>'+esc(entry.time||'')+'</time></div>'+(entry.note?'<p>'+esc(entry.note)+'</p>':'<p class="p2-muted">沒有留下文字。</p>')+'<div class="p2-journal-actions"><button class="p2-text-button" data-day-edit="'+esc(entry.id)+'"><i class="fa-solid fa-pen"></i> 編輯</button><button class="p2-text-button" data-day-share="'+esc(entry.id)+'">分享到健康圈</button></div></article>').join('')+'</div>');
+    document.querySelectorAll('[data-day-edit]').forEach(button=>button.onclick=()=>moodForm(GH.state.moods.find(x=>x.id===button.dataset.dayEdit)));
+    document.querySelectorAll('[data-day-share]').forEach(button=>button.onclick=()=>GH.family.shareDiary(button.dataset.dayShare,renderMood));
+  }
+  function moodForm(existing=null) {
     const now = new Date().toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hour12:false});
-    GH.sheet('記下今天', '<form id="p2-mood-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>今天的心情</legend>' + moods.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="' + label + '" required>' + GH.art('mood-'+key) + '<span>' + label + '</span><i class="fa-solid fa-check" aria-hidden="true"></i></label>').join('') + '</fieldset><label>記錄時間<input type="time" name="time" value="'+now+'" required></label><label>想記下什麼？<textarea name="note" maxlength="500" placeholder="寫下今天的一件小事"></textarea></label><button id="p2-save-mood" class="p2-primary full" disabled>儲存心情日記</button></form>');
+    GH.sheet(existing?'編輯心情日記':'記下今天', '<form id="p2-mood-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>今天的心情</legend>' + moods.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="' + label + '" required'+(existing?.value===label?' checked':'')+'>' + GH.art('mood-'+key) + '<span>' + label + '</span><i class="fa-solid fa-check" aria-hidden="true"></i></label>').join('') + '</fieldset><label>記錄時間<input type="time" name="time" value="'+esc(existing?.time||now)+'" required></label><label>想記下什麼？<textarea name="note" maxlength="500" placeholder="寫下今天的一件小事">'+esc(existing?.note||'')+'</textarea></label><button id="p2-save-mood" class="p2-primary full"'+(existing?'':' disabled')+'>'+(existing?'儲存修改':'儲存心情日記')+'</button></form>');
     const form=document.getElementById('p2-mood-form');
     form.onchange=()=>{document.getElementById('p2-save-mood').disabled=!form.querySelector('[name=mood]:checked');};
     form.onsubmit = e => {
       e.preventDefault();const f=new FormData(form),mood=String(f.get('mood'));
       if(!moods.some(x=>x[0]===mood))return;
       document.getElementById('p2-save-mood').disabled=true;
-      const id=crypto.randomUUID();GH.set(s=>s.moods.push({id,value:mood,note:String(f.get('note')||'').trim(),date:today(),time:String(f.get('time')||'')}));
-      GH.closeSheet();renderMood();GH.sheet('心情日記已儲存','<p>日記已私人保存。也可以主動分享心情給家人。</p><div class="p2-actions"><button id="p2-share-saved-diary" class="p2-primary">分享到健康圈</button><button class="p2-secondary" data-close-sheet>完成</button></div>');document.getElementById('p2-share-saved-diary').onclick=()=>GH.family.shareDiary(id,renderMood);
+      const id=existing?.id||crypto.randomUUID();GH.set(s=>{const row=s.moods.find(x=>x.id===id),next={id,value:mood,note:String(f.get('note')||'').trim(),date:existing?.date||today(),time:String(f.get('time')||'')};if(row)Object.assign(row,next);else s.moods.push(next);});
+      GH.closeSheet();renderMood();if(existing)return GH.toast('心情日記已更新');GH.sheet('心情日記已儲存','<p>這篇日記只會保留在你的私人紀錄。若想讓家人看見，可以先預覽再分享到健康圈。</p><div class="p2-actions"><button id="p2-share-saved-diary" class="p2-primary">預覽並分享</button><button class="p2-secondary" data-close-sheet>完成</button></div>');document.getElementById('p2-share-saved-diary').onclick=()=>GH.family.shareDiary(id,renderMood);
     };
   }
   document.addEventListener('DOMContentLoaded', render);

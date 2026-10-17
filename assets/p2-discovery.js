@@ -56,6 +56,7 @@
     draw();
   }
   function renderPlaces() {
+    if (window.GH_PLACES) return window.GH_PLACES.render();
     const panel = document.getElementById('p2-discovery-panel');
     panel.innerHTML = '<div class="p2-section-head"><h2>附近健康服務</h2></div><p class="p2-section-intro">使用目前位置或選擇地區，查看營運精選的健康去處。</p><div class="p2-actions"><button id="p2-my-location" class="p2-primary"><i class="fa-solid fa-location-crosshairs"></i> 使用我的位置</button><button id="p2-city-location" class="p2-secondary">選擇地區</button></div><p id="p2-place-location-label" class="p2-small p2-muted">尚未選擇位置</p><div id="p2-map" class="p2-map fallback" style="margin-top:14px"><div class="message">選擇位置，查看地圖與精選去處</div></div><div class="p2-pill-row" id="p2-place-cats" style="margin-top:16px"></div><div id="p2-place-list"></div><p class="p2-subtle">清單由 GO HEALTH 維護，地圖與路線由 Google Maps 提供；營業資訊請以地點頁面為準。</p>';
     let places = []; let cat = '全部';

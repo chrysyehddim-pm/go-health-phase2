@@ -47,6 +47,26 @@
   const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} };
   const set = updater => { updater(state); rememberTaskCompletions(); save(); document.dispatchEvent(new CustomEvent('gh:state')); };
   const format = value => Number(value || 0).toLocaleString('zh-TW');
+  const demoAvatarAssets = {
+    '我': 'images/avatars/member-self.webp',
+    '爸爸': 'images/avatars/member-father.webp',
+    '媽媽': 'images/avatars/member-mother.webp',
+    '姊姊': 'images/avatars/member-sister.webp',
+    '阿姨': 'images/avatars/member-aunt.webp'
+  };
+  function avatar(person, options = {}) {
+    const member = typeof person === 'string'
+      ? (state.group?.members?.find(item => item.name === person) || { name: person })
+      : (person || {});
+    const name = member.name || options.name || '成員';
+    const label = options.label || (name === '我' ? (state.group?.nickname || '我') : (member.nickname || name));
+    const source = member.avatarUrl || member.avatar || demoAvatarAssets[name] || '';
+    const className = options.className ? ' ' + escape(options.className) : '';
+    return '<span class="p2-avatar' + className + '" role="img" aria-label="' + escape(label) + '">' +
+      '<span class="p2-avatar-fallback" aria-hidden="true">' + escape(label.slice(0, 1)) + '</span>' +
+      (source ? '<img src="' + escape(source) + '" alt="" aria-hidden="true" loading="lazy">' : '') +
+      (options.check ? '<i class="fa-solid fa-check" aria-hidden="true"></i>' : '') + '</span>';
+  }
   const navItems = [
     ['index.html', '首頁', 'fa-house'],
     ['health.html', '紀錄', 'fa-chart-line'],
@@ -102,11 +122,13 @@
     const image = 'images/scene/' + (task.image || 'task-walk') + '.webp';
     const stateClass = options.preview?'is-preview':status?.claimed?'is-claimed':status?.canClaim?'is-ready':status?.self?'is-self-complete':status?.unlocked?'is-unlocked':'is-waiting';
     const actionLabel = status?.claimed?'查看成果':status?.canClaim?'領取獎勵':'查看任務';
+    const range=status?.period?status.period.start.slice(5).replace('-','/')+'–'+status.period.end.slice(5).replace('-','/'):'本週';
     return '<' + tag + ' class="p2-task-card p2-art-card ' + stateClass + ' ' + (href ? 'p2-illustrated-task' : '') + '"' + (href ? ' href="' + escape(href) + '"' : '') + '>' +
       '<div class="p2-card-art" aria-hidden="true"><img src="' + image + '" alt="" loading="lazy"></div>' +
-      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><p>' + escape(task.shortDetail || task.detail) + '</p>'+(options.joined?'<p class="p2-task-personal-status">'+escape(status?.label || '')+'</p>':'')+'</div>' +
-      '<div class="p2-task-bottom"><span class="' + (options.joined ? '' : 'p2-task-join-hint') + '">' + (options.joined ? (status?.unlocked?'已解鎖 · '+count+' 人完成':'已達成 ' + count + '／' + task.members + ' 人') : '共同任務預覽') + '</span>' +
-      (href ? '<span class="p2-task-link-label">查看任務 <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + actionLabel + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+(status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'')+'</' + tag + '>';
+      '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><div class="p2-task-meta"><span><i class="fa-regular fa-calendar"></i> '+range+'</span><span><i class="fa-solid fa-users"></i> 需 '+task.members+' 人</span></div><p>' + escape(task.shortDetail || task.detail) + '</p></div>' +
+      '<div class="p2-task-bottom">' +
+      (href ? '<span class="p2-task-link-label">'+actionLabel+' <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + actionLabel + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+
+      (status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'<div class="p2-task-completed-footer"><span class="p2-task-state preview">加入健康圈完成任務</span></div>')+'</' + tag + '>';
   }
   function shell(active, title) {
     const header = document.getElementById('p2-header');
@@ -229,5 +251,6 @@
     return 1200 + earned - used;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
-  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, KEY };
+  document.addEventListener('error', event => { if (event.target?.matches?.('.p2-avatar img')) event.target.remove(); }, true);
+  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, KEY };
 })();
