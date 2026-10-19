@@ -12,17 +12,7 @@
     form.querySelectorAll('[data-care-text]').forEach(b=>b.onclick=()=>{form.querySelector('textarea').value=b.dataset.careText;form.querySelector('textarea').focus();});
   }
 
-  function locationStatus(member) {
-    const value=member?.lastLocation?.updatedAt;
-    const date=value&&new Date(value);
-    if(!member?.locationSharing)return {available:false,label:'尚未開啟位置分享',reason:'這位家人尚未同意分享最後位置。'};
-    if(!date||Number.isNaN(date.getTime()))return {available:false,label:'尚無位置紀錄',reason:'目前還沒有可顯示的位置資料。'};
-    const age=Math.max(0,Date.now()-date.getTime());
-    if(age>7*86400000)return {available:false,label:'近期沒有位置更新',reason:'最後位置已超過 7 天，為避免誤解，暫不顯示地圖。'};
-    const time=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
-    const today='今天 '+new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hour12:false}).format(date)+' 更新';
-    return {available:true,label:age<86400000?today:time+' 更新',freshness:age<2*3600000?'fresh':age<86400000?'aging':'stale'};
-  }
+  function locationStatus(member) { return GH.locationContext.get(member?.name); }
   function sendCare(name) {
     GH.sheet('傳送關心給' + displayName(name), '<form id="p2-care-form" class="p2-form"><label>想說的話<textarea name="text" maxlength="150" required placeholder="寫一句關心的話"></textarea></label><button class="p2-primary full">送出</button></form>');
     quickCare(document.getElementById('p2-care-form'));
@@ -112,11 +102,16 @@
     const app=document.getElementById('app-root');
     if(!member){main().innerHTML='<section><a class="p2-back-button" href="group.html"><i class="fa-solid fa-chevron-left"></i> 回到健康圈</a><div class="p2-empty"><i class="fa-solid fa-location-dot"></i><h2>找不到這位成員</h2><p>成員可能已離開健康圈。</p></div></section>';GH.scene('circle');app.classList.add('p2-plain-page');return;}
     const status=locationStatus(member),loc=member.lastLocation||{};
-    const freshnessNote=status.freshness==='aging'?'位置可能已有變動。':status.freshness==='stale'?'這是較早的位置，請留意更新時間。':'由家人同意分享的最後位置';
+    const freshnessNote=status.freshness==='aging'?'位置可能已有變動。':status.freshness==='stale'?'這是較早的位置，建議先確認家人目前所在。':'由家人同意分享的最後位置';
     const map=status.available?'<div class="p2-family-location-map"><iframe title="'+esc(displayName(name))+'的最後位置地圖" src="https://www.google.com/maps?q='+encodeURIComponent(String(loc.lat)+','+String(loc.lng))+'&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div><div class="p2-location-info"><div><span>位置範圍</span><strong>'+esc(loc.place||loc.area||'位置附近')+'</strong><small>'+esc(loc.area||'')+'</small></div><div><span>更新時間</span><strong>'+esc(status.label)+'</strong><small>'+freshnessNote+'</small></div></div><a class="p2-secondary full" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(String(loc.lat)+','+String(loc.lng))+'" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> 用 Google 地圖查看</a>':'<div class="p2-empty p2-location-empty"><i class="fa-solid fa-location-dot"></i><h2>'+esc(status.label)+'</h2><p>'+esc(status.reason)+'</p></div>';
     main().innerHTML='<section class="p2-family-location-page"><a class="p2-back-button" href="group.html"><i class="fa-solid fa-chevron-left"></i> 回到健康圈</a><div class="p2-family-location-head">'+GH.avatar(member,{label:displayName(name)})+'<div><p class="p2-eyebrow">家人最後位置</p><h1 class="p2-page-title">'+esc(displayName(name))+'的最後位置</h1></div></div><div class="p2-location-privacy"><i class="fa-solid fa-circle-info"></i><p><strong>這是最後一次取得的位置</strong><span>位置可能因手機更新時間而有落差，並非即時定位。</span></p></div>'+map+(name!=='我'?'<button id="p2-location-care" class="p2-primary full"><i class="fa-solid fa-heart"></i> 傳送關心</button>':'')+'</section>';
     GH.scene('circle');app.classList.add('p2-plain-page');
     document.getElementById('p2-location-care')?.addEventListener('click',()=>sendCare(name));
+    if(status.available){
+      const demo=GH.state.scenario==='family-location'?'&demoPlaces=1':'';
+      const nearby=document.createElement('a');nearby.className='p2-primary full p2-family-nearby';nearby.href='explore.html?tab=places&family='+encodeURIComponent(name)+demo;nearby.innerHTML='<i class="fa-solid fa-map-location-dot"></i> 看看附近健康去處';
+      document.querySelector('.p2-family-location-page').appendChild(nearby);
+    }
   }
   function memberList(){
     const group=GH.state.group;

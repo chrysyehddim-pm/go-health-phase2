@@ -1,113 +1,103 @@
 (function () {
   'use strict';
-
-  const typeMeta = {
-    '健康飲食': { icon: 'fa-bowl-food', tone: 'food' },
-    '公園步道': { icon: 'fa-tree', tone: 'park' },
-    '運動場所': { icon: 'fa-person-running', tone: 'sport' },
-    '醫院診所': { icon: 'fa-hospital', tone: 'medical' },
-    '藥局': { icon: 'fa-prescription-bottle-medical', tone: 'pharmacy' }
+  const types = {
+    '公園步道': ['park', 'hiking_area'],
+    '運動場所': ['gym', 'fitness_center', 'sports_complex'],
+    '醫院診所': ['hospital', 'medical_clinic'],
+    '藥局': ['pharmacy']
   };
-
-  // Prototype data is curated and stored by GO HEALTH. It does not call Places Nearby Search.
-  // Formal launch should replace this array with records from the GO HEALTH CMS/database.
-  const rawPlaces = [
-    ['daan-forest', '大安森林公園', '公園步道', '臺北市', '大安區', '新生南路二段1號', 25.0296, 121.5356, '大片綠地與環狀步道，適合散步、慢跑與親子活動。', ['無障礙步道', '戶外']],
-    ['fuyang-park', '富陽自然生態公園', '公園步道', '臺北市', '大安區', '富陽街底', 25.0188, 121.5561, '保留自然林相與緩坡步道，可安排輕量健走。', ['自然步道', '戶外']],
-    ['fuzhou-hill', '福州山公園', '公園步道', '臺北市', '大安區', '臥龍街199號', 25.0168, 121.5512, '可眺望市區的森林步道，部分路段有階梯。', ['登高步道', '戶外']],
-    ['dunan-park', '敦安公園', '公園步道', '臺北市', '大安區', '信義路四段與敦化南路口', 25.0326, 121.5486, '市區內的小型綠地，適合短程散步與休息。', ['城市綠地']],
-    ['daan-sports', '臺北市大安運動中心', '運動場所', '臺北市', '大安區', '辛亥路三段55號', 25.0217, 121.5433, '設有游泳池、健身房與多用途球場。', ['室內運動', '無障礙']],
-    ['ntu-gym', '國立臺灣大學綜合體育館', '運動場所', '臺北市', '大安區', '羅斯福路四段1號', 25.0212, 121.5352, '校園綜合運動場館，開放項目與時段以現場公告為準。', ['運動場館']],
-    ['heping-basketball', '臺北和平籃球館', '運動場所', '臺北市', '大安區', '敦南街76巷28號', 25.0214, 121.5477, '大型室內場館，活動及開放資訊可於出發前查詢。', ['室內場館']],
-    ['ntnu-gym', '國立臺灣師範大學體育館', '運動場所', '臺北市', '大安區', '和平東路一段162號', 25.0266, 121.5275, '校園運動場館，使用規則依校方公告。', ['運動場館']],
-    ['cathay-hospital', '國泰綜合醫院', '醫院診所', '臺北市', '大安區', '仁愛路四段280號', 25.0370, 121.5537, '提供門診、急診與多科醫療服務。', ['醫院', '急診']],
-    ['renai-hospital', '臺北市立聯合醫院仁愛院區', '醫院診所', '臺北市', '大安區', '仁愛路四段10號', 25.0375, 121.5460, '市立綜合醫院，提供門診、住院與急診服務。', ['醫院', '急診']],
-    ['center-hospital', '中心診所醫療財團法人中心綜合醫院', '醫院診所', '臺北市', '大安區', '忠孝東路四段77號', 25.0418, 121.5474, '提供多科門診與健康檢查服務。', ['醫院', '健檢']],
-    ['chungshan-hospital', '中山醫院', '醫院診所', '臺北市', '大安區', '仁愛路四段112巷11號', 25.0366, 121.5502, '提供多科門診及住院服務。', ['醫院']],
-    ['greattree-ruian', '大樹連鎖藥局 台北瑞安店', '藥局', '臺北市', '大安區', '瑞安街208巷11弄1號', 25.0286, 121.5405, '社區藥局，可於前往前確認營業時間與所需服務。', ['社區藥局']],
-    ['yeschain-heping', '躍獅藥局 和平店', '藥局', '臺北市', '大安區', '和平東路二段', 25.0254, 121.5419, '社區藥局，提供用藥諮詢與日常保健用品。', ['用藥諮詢']],
-    ['cosmed-daan', '丁丁連鎖藥妝 大安店', '藥局', '臺北市', '大安區', '信義路三段', 25.0333, 121.5408, '藥妝與保健用品據點，服務內容依門市公告。', ['保健用品']],
-    ['little-tree', '小小樹食 大安店', '健康飲食', '臺北市', '大安區', '大安路一段116巷17號', 25.0391, 121.5460, '提供蔬食餐點，適合安排清爽均衡的一餐。', ['蔬食', '均衡餐點']],
-    ['miacucina', 'Miacucina 復興店', '健康飲食', '臺北市', '大安區', '復興南路一段', 25.0410, 121.5437, '以蔬食與原型食材為主的餐飲選擇。', ['蔬食']],
-    ['plants', 'Plants', '健康飲食', '臺北市', '大安區', '復興南路二段', 25.0297, 121.5435, '提供植物性餐點，餐點與營業資訊以店家公告為準。', ['植物性飲食']],
-    ['banqiao-435', '板橋435藝文特區', '公園步道', '新北市', '板橋區', '中正路435號', 25.0232, 121.4525, '有戶外廣場與河濱周邊空間，適合散步與親子活動。', ['戶外', '親子']],
-    ['banqiao-sports', '新北市板橋國民運動中心', '運動場所', '新北市', '板橋區', '智樂路6號', 25.0224, 121.4601, '設有游泳池、健身房與多用途運動空間。', ['室內運動']],
-    ['far-eastern-hospital', '亞東紀念醫院', '醫院診所', '新北市', '板橋區', '南雅南路二段21號', 24.9975, 121.4527, '提供門診、急診與多科醫療服務。', ['醫院', '急診']],
-    ['banqiao-chung-hsing', '板橋中興醫院', '醫院診所', '新北市', '板橋區', '忠孝路15號', 25.0011, 121.4600, '提供門診與住院醫療服務。', ['醫院']],
-    ['greattree-banqiao', '大樹連鎖藥局 板橋店', '藥局', '新北市', '板橋區', '中山路二段', 25.0165, 121.4760, '社區藥局，可於前往前確認營業時間。', ['社區藥局']]
-  ];
-
-  const curated = rawPlaces.map(function (row) {
-    const id = row[0];
-    const name = row[1];
-    const type = row[2];
-    const county = row[3];
-    const district = row[4];
-    const street = row[5];
-    const lat = row[6];
-    const lng = row[7];
-    const summary = row[8];
-    const tags = row[9];
-    const meta = typeMeta[type];
-    const address = county + district + street;
-    return {
-      id: id, name: name, type: type, county: county, district: district,
-      street: street, address: address, lat: lat, lng: lng, summary: summary,
-      tags: tags, icon: meta.icon, tone: meta.tone, source: 'GO HEALTH 精選',
-      updatedAt: '2026-10-18', active: true,
-      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name + ' ' + address)
-    };
-  });
-
-  function distance(lat1, lng1, lat2, lng2) {
-    const rad = function (n) { return n * Math.PI / 180; };
-    const earth = 6371;
-    const dLat = rad(lat2 - lat1);
-    const dLng = rad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  function fallback(container, title, detail) {
-    if (!container) return;
-    container.innerHTML = '<div class="message"><i class="fa-solid fa-map-location-dot"></i><strong>' + title + '</strong><span>' + detail + '</span></div>';
-  }
-
-  function embed(query, container, forceError) {
-    if (!container) return;
-    if (forceError) {
-      fallback(container, '地圖暫時無法顯示', '仍可查看下方地點清單，或使用 Google 地圖開啟位置。');
-      return;
-    }
-    container.innerHTML = '<iframe title="Google 地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=' + encodeURIComponent(query) + '&z=14&output=embed"></iframe>';
-  }
-
-  function loadNearby(lat, lng, container, options) {
-    const list = curated.filter(function (place) { return place.active; }).map(function (place) {
-      return Object.assign({}, place, { distance: distance(lat, lng, place.lat, place.lng) });
-    }).filter(function (place) { return place.distance <= 20; }).sort(function (a, b) { return a.distance - b.distance; });
-    embed(lat + ',' + lng, container, options && options.forceError);
-    return Promise.resolve(list);
-  }
-
-  function loadRegion(county, district, container, options) {
-    const list = curated.filter(function (place) {
-      return place.active && place.county === county && place.district === district;
+  let ready;
+  const config = window.GH_MAPS_CONFIG || {};
+  function load() {
+    if (ready) return ready;
+    ready = new Promise((resolve, reject) => {
+      const key = config.apiKey || window.GOHEALTH_MAPS_API_KEY;
+      if (!key) return reject(new Error('MAPS_KEY_MISSING'));
+      const callback = '__ghMapsReady';
+      const timeout = setTimeout(() => reject(new Error('MAPS_TIMEOUT')), 20000);
+      window[callback] = async () => {
+        try {
+          await Promise.all(['maps', 'places', 'marker'].map(lib => google.maps.importLibrary(lib)));
+          clearTimeout(timeout); resolve(google.maps);
+        } catch (error) { clearTimeout(timeout); reject(error); }
+      };
+      window.gm_authFailure = () => { clearTimeout(timeout); reject(new Error('MAPS_AUTH')); window.dispatchEvent(new Event('gh:maps-auth-error')); };
+      if (window.google?.maps?.importLibrary) { window[callback](); return; }
+      const script = document.createElement('script');
+      const query = new URLSearchParams({key, callback, v: 'weekly', loading: 'async', language: 'zh-TW', region: 'TW'});
+      script.src = 'https://maps.googleapis.com/maps/api/js?' + query;
+      script.onerror = () => { clearTimeout(timeout); reject(new Error('MAPS_NETWORK')); };
+      document.head.appendChild(script);
     });
-    embed(county + district, container, options && options.forceError);
-    return Promise.resolve(list);
+    return ready;
   }
-
-  function focus(place, container, options) {
-    if (!place) return;
-    embed(place.name + ' ' + place.address, container, options && options.forceError);
+  function distance(a, b) {
+    const rad = n => n * Math.PI / 180;
+    const dlat = rad(b.lat - a.lat), dlng = rad(b.lng - a.lng);
+    const h = Math.sin(dlat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dlng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
-
-  function coverage(county, district) {
-    return curated.filter(function (place) {
-      return place.active && place.county === county && place.district === district;
-    }).length;
+  function foodBounds(center) {
+    const dy = 1 / 111.32, dx = dy / Math.cos(center.lat * Math.PI / 180);
+    return {north: center.lat + dy, south: center.lat - dy, east: center.lng + dx, west: center.lng - dx};
   }
-
-  window.GH_MAPS = { curated: curated, typeMeta: typeMeta, distance: distance, loadNearby: loadNearby, loadRegion: loadRegion, focus: focus, coverage: coverage, fallback: fallback };
+  function content(detail) {
+    const node = document.createElement('gmp-place-content-config');
+    ['address', 'type', 'rating', detail ? 'opening-hours' : 'open-now-status', 'attribution'].forEach(name => node.appendChild(document.createElement('gmp-place-' + name)));
+    return node;
+  }
+  async function createMap(container, center) {
+    const maps = await load();
+    return new maps.Map(container, {center, zoom: 15, mapId: config.mapId || 'DEMO_MAP_ID', mapTypeControl: false, streetViewControl: false, fullscreenControl: false, clickableIcons: false, gestureHandling: 'cooperative'});
+  }
+  // Existing elements stay mounted (hidden) for this page only. No REST Places
+  // or fetchFields fallback, persistent result store, or cross-member result cache.
+  async function search(host, center, category, callbacks) {
+    await load();
+    const element = document.createElement('gmp-place-search');
+    element.setAttribute('selectable', '');
+    element.setAttribute('aria-label', category + '搜尋結果');
+    element.appendChild(content(false));
+    const food = category === '健康飲食';
+    const request = document.createElement(food ? 'gmp-place-text-search-request' : 'gmp-place-nearby-search-request');
+    request.maxResultCount = 10;
+    if (food) {
+      request.locationRestriction = foodBounds(center);
+      request.rankPreference = 'DISTANCE';
+    } else {
+      request.includedTypes = types[category];
+      request.rankPreference = 'DISTANCE';
+    }
+    element.appendChild(request);
+    element.addEventListener('gmp-select', event => callbacks.select(event.place));
+    element.addEventListener('gmp-load', () => callbacks.loaded(element.places || []));
+    element.addEventListener('gmp-error', () => callbacks.error(new Error('PLACES_DENIED')));
+    host.appendChild(element);
+    // Required property last: preceding property assignments do not start queries.
+    if (food) request.textQuery = '健康餐';
+    else request.locationRestriction = {center, radius: 1000};
+    return element;
+  }
+  function marker(map, place, select) {
+    if (!place.location) return null;
+    const m = new google.maps.marker.AdvancedMarkerElement({map, position: place.location, gmpClickable: true});
+    m.addListener('click', () => select(place));
+    return m;
+  }
+  async function details(place) {
+    await load();
+    const element = document.createElement('gmp-place-details');
+    element.appendChild(content(true));
+    const request = document.createElement('gmp-place-details-place-request');
+    request.place = place.id;
+    element.appendChild(request);
+    return element;
+  }
+  function mapsUrl(place) {
+    const pos = typeof place.location?.toJSON === 'function' ? place.location.toJSON() : place.location;
+    const query = new URLSearchParams({api: '1', query: pos ? pos.lat + ',' + pos.lng : (place.name || '地點')});
+    if (place.id && !place.fixture) query.set('query_place_id', place.id);
+    return 'https://www.google.com/maps/search/?' + query;
+  }
+  window.GH_MAPS = {load, createMap, search, marker, details, distance, mapsUrl, foodBounds};
 })();

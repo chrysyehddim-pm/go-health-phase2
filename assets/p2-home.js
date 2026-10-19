@@ -8,9 +8,8 @@
   const row = (href, icon, title, detail) => '<a class="p2-home-link p2-illustrated-entry" href="' + href + '"><span><strong>' + title + '</strong><small>' + detail + '</small></span>' + GH.art(icon) + '<i class="fa-solid fa-chevron-right"></i></a>';
   function render() {
     GH.shell('首頁', '首頁');
-    const hour = Number(new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
-    const greeting = hour<6?'夜深了':hour<12?'早安':hour<18?'午安':'晚安';
-    const greetingDetail = hour<6?'注意保暖，早點休息喔 🦉':hour<12?'今天也要元氣滿滿 ☀️':hour<18?'吃飽喝足，來動動腦吧 ☕':'今天過得好嗎？放鬆一下 🌙';
+    const visual = GH.visualContext('home');
+    const [greeting, greetingDetail] = window.GH_VISUALS?.homeCopy(visual?.period) || ['早安', '今天也要元氣滿滿 ☀️'];
     const unread = GH.state.notifications.some(item => !item.read);
     const group = GH.state.group;
     const nudge = GH.latest('steps') ? '今天也用適合自己的節奏活動，記下每一個小進步。' : '連接健康資料後，查看適合自己的活動提醒；今天先找個舒服的時段散步。';

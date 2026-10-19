@@ -24,7 +24,7 @@
     gameHistory: sampleHistory(),
     pointAwards: [],
     taskClaims: [],
-    member: { isHappyGo: true, consent: false }
+    member: { isHappyGo: true, consent: false, gender: 'female' }
   });
   let state;
   try { state = Object.assign(fresh(), JSON.parse(sessionStorage.getItem(KEY) || '{}')); }
@@ -38,6 +38,8 @@
   state.notifications ||= fresh().notifications;
   state.pointAwards ||= [];
   state.taskClaims ||= [];
+  state.member ||= fresh().member;
+  state.member.gender ||= 'female';
   if (!Object.hasOwn(state, 'group')) state.group = null;
   if (state.group) {
     state.group.id ||= 'circle-' + crypto.randomUUID();
@@ -87,9 +89,17 @@
       app.insertBefore(hero, main);
       // The document scrolls as one page; the sheet moves over the hero.
     }
+    const visual = window.GH_VISUALS?.context(name, state.member) || {
+      scene: name, period: 'default', gender: 'neutral',
+      src: 'images/scene/' + name + '.webp', fallback: 'images/scene/' + name + '.webp'
+    };
+    const visualKey = [name, visual.gender, visual.period].join('-');
     hero.dataset.scene = name;
-    if (!hero.querySelector('img') || hero.querySelector('img').dataset.name !== name) {
-      hero.innerHTML = '<img data-name="' + name + '" src="images/scene/' + name + '.webp" alt="" fetchpriority="high">';
+    hero.dataset.period = visual.period;
+    hero.dataset.gender = visual.gender;
+    if (!hero.querySelector('img') || hero.querySelector('img').dataset.name !== visualKey) {
+      hero.classList.remove('is-image-missing');
+      hero.innerHTML = '<img data-name="' + escape(visualKey) + '" data-fallback="' + escape(visual.fallback) + '" src="' + escape(visual.src) + '" alt="" fetchpriority="high">';
     }
     const greeting = main.querySelector('.p2-home-top');
     if (greeting) {
@@ -251,6 +261,19 @@
     return 1200 + earned - used;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
-  document.addEventListener('error', event => { if (event.target?.matches?.('.p2-avatar img')) event.target.remove(); }, true);
-  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, KEY };
+  document.addEventListener('error', event => {
+    const image = event.target;
+    if (image?.matches?.('.p2-avatar img')) image.remove();
+    if (image?.matches?.('.p2-scene > img')) {
+      const fallback = image.dataset.fallback;
+      if (fallback && image.dataset.fallbackUsed !== 'true' && image.getAttribute('src') !== fallback) {
+        image.dataset.fallbackUsed = 'true';
+        image.src = fallback;
+      } else {
+        image.hidden = true;
+        image.parentElement?.classList.add('is-image-missing');
+      }
+    }
+  }, true);
+  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, visualContext: name => window.GH_VISUALS?.context(name, state.member), KEY };
 })();

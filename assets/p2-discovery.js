@@ -25,14 +25,26 @@
     return score;
   }
   function renderExplore() {
-    GH.shell('探索', '探索');
-    const tab = new URLSearchParams(location.search).get('tab') === 'articles' ? 'articles' : 'places';
-    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">探索</h1><p class="p2-lead">讀一篇健康文章，或找個地方出門走走。</p></section><section><div class="p2-segment p2-primary-tabs" role="tablist" aria-label="探索分類"><button role="tab" aria-selected="' + (tab === 'articles') + '" data-tab="articles" class="' + (tab === 'articles' ? 'active' : '') + '">健康文章</button><button role="tab" aria-selected="' + (tab === 'places') + '" data-tab="places" class="' + (tab === 'places' ? 'active' : '') + '">附近去處</button></div></section><section id="p2-discovery-panel"></section>';
-    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { history.replaceState(null, '', 'explore.html?tab=' + b.dataset.tab); document.querySelectorAll('[data-tab]').forEach(x => {x.classList.toggle('active', x === b);x.setAttribute('aria-selected',String(x===b));}); if (b.dataset.tab === 'places') renderPlaces(); else renderArticles(); });
-    if (tab === 'places') renderPlaces(); else renderArticles();
-    const tabs = document.querySelector('.p2-segment');
-    tabs.insertBefore(tabs.querySelector('[data-tab=places]'), tabs.firstElementChild);
-    GH.scene('explore');
+    const family = new URLSearchParams(location.search).get('family');
+    GH.shell(family ? '健康圈' : '探索', '探索');
+    const tab = new URLSearchParams(location.search).get('tab') === 'articles' && !family ? 'articles' : 'places';
+    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">'+(family?'家人附近去處':'探索')+'</h1><p class="p2-lead">'+(family?'找個合適的地方，分享一句貼心的推薦。':'讀一篇健康文章，或找個地方出門走走。')+'</p></section>'+
+      (family?'':'<section><div class="p2-segment p2-primary-tabs" role="tablist" aria-label="探索分類"><button role="tab" id="p2-tab-places" aria-controls="p2-places-panel" data-tab="places">附近去處</button><button role="tab" id="p2-tab-articles" aria-controls="p2-articles-panel" data-tab="articles">健康文章</button></div></section>')+
+      '<section id="p2-places-panel" role="tabpanel" aria-labelledby="p2-tab-places" hidden></section><section id="p2-articles-panel" role="tabpanel" aria-labelledby="p2-tab-articles" hidden></section>'+
+      '<section class="p2-hospital-services"><div class="p2-section-head"><h2>更多健康協助</h2></div><p>需要更多資訊與專業協助時，讓亞東醫院陪你一起照顧健康。</p><a class="p2-hospital-service" href="https://page.line.me/769uaenm" target="_blank" rel="noopener noreferrer"><span class="p2-service-icon line"><i class="fa-brands fa-line"></i></span><span><strong>亞東醫院 LINE 好友</strong><small>接收健康資訊與院方最新消息</small><em>加入 LINE 好友</em></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a><a class="p2-hospital-service" href="https://www.fetnet.net/content/cbu/tw/digital-services/health/5g-telemedicine/partners/femh.html" target="_blank" rel="noopener noreferrer"><span class="p2-service-icon"><i class="fa-solid fa-video"></i></span><span><strong>亞東醫院 Health Online</strong><small>了解遠距健康諮詢服務</small><em>查看服務介紹</em></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a></section>';
+    let articleRendered=false;
+    const select=name=>{
+      const p=new URLSearchParams(location.search);p.set('tab',name);history.replaceState(null,'',location.pathname+'?'+p);
+      document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});
+      document.getElementById('p2-places-panel').hidden=name!=='places';
+      document.getElementById('p2-articles-panel').hidden=name!=='articles';
+      if(name==='places')renderPlaces();else if(!articleRendered){renderArticles();articleRendered=true;}
+    };
+    document.querySelectorAll('[data-tab]').forEach(b=>{
+      b.onclick=()=>select(b.dataset.tab);
+      b.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const buttons=[...document.querySelectorAll('[data-tab]')];const target=buttons[e.key==='Home'?0:e.key==='End'?1:1-buttons.indexOf(b)];select(target.dataset.tab);target.focus();}};
+    });
+    select(tab);GH.scene('explore');
   }
   function renderArticles() {
     const articles = [...(window.GH_ARTICLES || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''),'zh-TW'));
@@ -41,7 +53,7 @@
     const recommendedIds = new Set(recommended.map(a => a.id));
     const cats = ['推薦', '全部', '動腦與記憶', '心情與睡眠', '活動與身體', '心血管與健康知識'];
     let cat = '推薦'; let query = ''; let shown = 10;
-    const panel = document.getElementById('p2-discovery-panel');
+    const panel = document.getElementById('p2-articles-panel');
     panel.innerHTML = '<div class="p2-section-head"><h2>健康文章</h2></div><label class="sr-only" for="p2-article-search">搜尋健康文章</label><input class="p2-input" id="p2-article-search" type="search" placeholder="搜尋標題、主題或科別"><div class="p2-pill-row p2-article-filters" id="p2-article-filters"></div><div id="p2-article-list"></div>';
     const draw = () => {
       document.getElementById('p2-article-filters').innerHTML = cats.map(c => '<button data-cat="' + c + '" class="' + (c === cat ? 'active' : '') + '">' + c + '</button>').join('');
@@ -55,46 +67,7 @@
     document.getElementById('p2-article-search').oninput = e => { query = e.target.value.trim().toLowerCase(); shown = 10; draw(); };
     draw();
   }
-  function renderPlaces() {
-    if (window.GH_PLACES) return window.GH_PLACES.render();
-    const panel = document.getElementById('p2-discovery-panel');
-    panel.innerHTML = '<div class="p2-section-head"><h2>附近健康服務</h2></div><p class="p2-section-intro">使用目前位置或選擇地區，查看營運精選的健康去處。</p><div class="p2-actions"><button id="p2-my-location" class="p2-primary"><i class="fa-solid fa-location-crosshairs"></i> 使用我的位置</button><button id="p2-city-location" class="p2-secondary">選擇地區</button></div><p id="p2-place-location-label" class="p2-small p2-muted">尚未選擇位置</p><div id="p2-map" class="p2-map fallback" style="margin-top:14px"><div class="message">選擇位置，查看地圖與精選去處</div></div><div class="p2-pill-row" id="p2-place-cats" style="margin-top:16px"></div><div id="p2-place-list"></div><p class="p2-subtle">清單由 GO HEALTH 維護，地圖與路線由 Google Maps 提供；營業資訊請以地點頁面為準。</p>';
-    let places = []; let cat = '全部';
-    const cats = ['全部', '健康飲食', '公園步道', '運動場所', '醫院診所', '藥局'];
-    const draw = () => {
-      document.getElementById('p2-place-cats').innerHTML = cats.map(c => '<button data-place-cat="' + c + '" class="' + (cat === c ? 'active' : '') + '">' + c + '</button>').join('');
-      const found = places.filter(p => cat === '全部' || p.type === cat);
-      document.getElementById('p2-place-list').innerHTML = found.length ? '<div class="p2-list">' + found.map((p, i) => '<button class="p2-list-card" data-place="' + i + '">' + icon(p.icon || 'fa-location-dot') + '<span class="body"><strong>' + esc(p.name) + '</strong><small>' + esc(p.type) + ' · ' + esc(p.source||'GO HEALTH 精選') + (Number.isFinite(p.distance)?' · 約 '+(p.distance<1?Math.round(p.distance*1000)+' 公尺':p.distance.toFixed(1)+' 公里'):'') + '</small><small>' + esc(p.address || '') + '</small></span><i class="fa-solid fa-chevron-right chevron"></i></button>').join('') + '</div>' : '<div class="p2-empty"><i class="fa-solid fa-map-location-dot"></i><h3>' + (places.length ? '此分類目前沒有精選地點' : '選擇位置開始探索') + '</h3></div>';
-      document.querySelectorAll('[data-place-cat]').forEach(b => b.onclick = () => { cat = b.dataset.placeCat; draw(); });
-      document.querySelectorAll('[data-place]').forEach(b => b.onclick = () => openPlace(found[Number(b.dataset.place)]));
-    };
-    const load = async (lat, lng, label) => {
-      const map = document.getElementById('p2-map');
-      map.innerHTML = '<div class="message">正在載入地圖與精選去處…</div>';
-      document.getElementById('p2-place-location-label').textContent='目前位置：'+label;
-      try { places = await window.GH_MAPS.load(lat, lng, map); draw(); if (!places.length) GH.toast('附近暫無搜尋結果'); }
-      catch (_) { map.classList.add('fallback'); map.innerHTML = '<div class="message">地圖暫時無法載入，請稍後再試</div>'; GH.toast('地圖服務暫時無法使用'); }
-    };
-    document.getElementById('p2-city-location').onclick = () => {
-      GH.sheet('選擇地區','<div class="p2-list"><button class="p2-list-card" data-area="taipei"><span class="body"><strong>台北市中心</strong><small>信義、大安與中正區</small></span><i class="fa-solid fa-chevron-right"></i></button><button class="p2-list-card" data-area="banqiao"><span class="body"><strong>新北市板橋區</strong><small>板橋與亞東醫院周邊</small></span><i class="fa-solid fa-chevron-right"></i></button></div>');
-      document.querySelector('[data-area=taipei]').onclick=()=>{GH.closeSheet();load(25.033,121.565,'台北市中心');};
-      document.querySelector('[data-area=banqiao]').onclick=()=>{GH.closeSheet();load(24.997,121.452,'新北市板橋區');};
-    };
-    document.getElementById('p2-my-location').onclick = () => {
-      if (!navigator.geolocation) return GH.toast('目前無法取得位置');
-      navigator.geolocation.getCurrentPosition(pos => load(pos.coords.latitude, pos.coords.longitude,'我的位置'), () => GH.toast('尚未取得位置授權，也可以手動選擇地區'), { timeout: 10000 });
-    };
-    draw();
-  }
-  function openPlace(place) {
-    if (!place) return;
-    GH.sheet(place.name, '<div class="p2-info-list"><p><strong>' + esc(place.type) + '</strong><br>' + esc(place.address || '') + '</p></div><div class="p2-actions"><a class="p2-primary" href="' + esc(place.url || '#') + '" target="_blank" rel="noopener noreferrer">在 Google Maps 查看</a><button id="p2-share-place" class="p2-secondary">分享給健康圈</button></div>');
-    document.getElementById('p2-share-place').onclick = () => {
-      if (!GH.state.group) return GH.sheet('加入健康圈', '<p>加入健康圈後，就能把喜歡的去處分享給大家。</p><a class="p2-primary full" href="group.html">前往健康圈</a>');
-      GH.sheet('分享地點', '<form id="p2-place-share-form" class="p2-form"><label>想說的話<textarea name="note" maxlength="200" required>想和大家一起去「' + esc(place.name) + '」走走。</textarea></label><button class="p2-primary full">分享給健康圈</button></form>');
-      document.getElementById('p2-place-share-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('note')).trim(); if (!text) return; GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), kind: '地點分享', text, place: place.name, url: place.url, comments: [], likes: 0 })); GH.closeSheet(); GH.toast('已分享至健康圈'); };
-    };
-  }
+  function renderPlaces() { window.GH_PLACES?.render(); }
   function articlePopup(a) {
     if(!a)return;
     GH.sheet(a.title,'<p class="p2-article-meta">亞東醫院 · '+esc(a.department)+'</p><p>'+esc(a.summary || '前往亞東醫院閱讀這篇健康文章，了解相關健康知識。')+'</p><div class="p2-actions"><a class="p2-primary" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">前往閱讀</a><button id="p2-share-article" class="p2-secondary">分享到健康圈</button></div>');
