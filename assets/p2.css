@@ -941,3 +941,28 @@ gmp-place-search,gmp-place-details{--gmp-mat-font-display-small:700 24px/1.5 'No
 /* Keep the back cards as opaque shells until they enter the foreground. */
 .p2-advice-slide[data-depth]:not([data-depth="0"]):not(.is-entering) > *,
 .p2-advice-slide.is-returning > * { visibility:hidden; }
+/* Save-time mood records and collapsed comments in an independent sheet. */
+.p2-mood-readonly { display:flex; align-items:center; gap:14px; padding:16px; background:#f5f8ef; border:1px solid #dbe5d6; border-radius:18px; }
+.p2-mood-readonly > .p2-object-art { width:64px; height:64px; flex:none; }
+.p2-mood-readonly > div { min-width:0; }
+.p2-mood-readonly strong { font-size:22px; }
+.p2-mood-readonly p { margin:6px 0 0; font-size:17px; overflow-wrap:anywhere; }
+.p2-journal-edited { display:block; color:#657b70; font-size:15px; margin:6px 0; }
+#p2-mood-form,#p2-comment-form { min-width:0; }
+#p2-mood-form textarea,#p2-comment-form textarea { box-sizing:border-box; max-width:100%; min-width:0; font-size:18px; }
+.p2-comment-parent { padding:14px 16px; background:#f3f7ef; border-radius:16px; }
+.p2-comment-parent strong { font-size:19px; }
+.p2-comment-parent p { margin:6px 0 0; font-size:17px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.p2-comment-thread { display:grid; gap:14px; margin:16px 0 24px; }
+.p2-comment-entry { display:flex; gap:10px; align-items:flex-start; }
+.p2-comment-entry > .p2-avatar { flex:none; width:38px; height:38px; }
+.p2-comment-entry > div { min-width:0; flex:1; padding:12px; border-radius:14px; background:#f4f8f5; }
+.p2-comment-heading { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px; }
+.p2-comment-heading strong { font-size:18px; }
+.p2-comment-heading time { font-size:14px; color:#657b70; }
+.p2-comment-entry p { margin:6px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:18px; line-height:1.7; }
+.p2-comment-counter { text-align:right; color:#657b70; font-size:15px; }
+.p2-comment-empty { color:#657b70; font-size:18px; line-height:1.7; }
+#p2-mood-form > label,#p2-comment-form > label { font-size:18px; }
+#p2-mood-form .p2-mood-choices legend { font-size:20px; }
+#p2-mood-form > .p2-small { font-size:16px; line-height:1.7; }

@@ -53,6 +53,7 @@
  }
  if(id==='new')s.gameHistory=[];
  if(requested==='S05'){s.group.members.push({name:'阿姨',role:'成員',avatarUrl:'images/avatars/member-aunt.webp',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)});}
+ if(requested==='S05'&&s.posts[0])s.posts[0].comments=Array.from({length:16},(_,i)=>({id:'comment-demo-'+i,author:s.group.members[i%5].name,text:['今天一起走走，很開心。','慢慢來，照自己的步調。','謝謝分享，記得好好休息。','下次也想一起去！'][i%4],createdAt:new Date(Date.now()-(16-i)*60000).toISOString()}));
  if(requested==='S06'){s.group.name='我的健康圈';s.group.members=[{name:'我',role:'圈主',avatarUrl:'images/avatars/member-self.webp',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)}];s.device='disconnected';s.healthPreferences=[];s.records=[];s.gameHistory=[];}
  if(id==='history'){
   const g=s.group,range=GH.family.weekRange(),p={id:g.id+':'+range.start,...range,members:g.members.map(m=>m.name),unlocked:{group_steps:true},completed:{group_steps:['我','爸爸']},completionDates:{}};

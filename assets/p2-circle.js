@@ -9,7 +9,7 @@
   const careMessages=['辛苦了，記得休息','今天也一起加油','看到你的分享很開心'];
   function quickCare(form) {
     form.querySelector('textarea').insertAdjacentHTML('beforebegin','<div class="p2-quick-care">'+careMessages.map(text=>'<button type="button" data-care-text="'+esc(text)+'">'+esc(text)+'</button>').join('')+'</div>');
-    form.querySelectorAll('[data-care-text]').forEach(b=>b.onclick=()=>{form.querySelector('textarea').value=b.dataset.careText;form.querySelector('textarea').focus();});
+    form.querySelectorAll('[data-care-text]').forEach(b=>b.onclick=()=>{form.querySelector('textarea').value=b.dataset.careText;form.querySelector('textarea').dispatchEvent(new Event('input',{bubbles:true}));form.querySelector('textarea').focus();});
   }
 
   function locationStatus(member) { return GH.locationContext.get(member?.name); }
@@ -189,7 +189,7 @@
   }
   function postMarkup(p) {
     const author=GH.state.group?.members.find(m=>m.name===p.author)||{name:p.author};
-    return '<article class="p2-social-post"><div class="p2-post-heading">' + GH.avatar(author,{label:displayName(p.author)}) + '<div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate)+(p.originalTime?' '+esc(p.originalTime):''):'') + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '" aria-pressed="'+(p.likedByMe?'true':'false')+'"><i class="'+(p.likedByMe?'fa-solid':'fa-regular')+' fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 回應 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + ((p.comments||[]).length?'<details class="p2-post-comments"><summary>查看留言 '+p.comments.length+' 則</summary>'+ (p.comments || []).map(c => '<div class="p2-comment"><strong>' + esc(displayName(c.author)) + '：</strong>' + esc(c.text) + '</div>').join('')+'</details>':'') + '</article>';
+    return '<article class="p2-social-post"><div class="p2-post-heading">' + GH.avatar(author,{label:displayName(p.author)}) + '<div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate)+(p.originalTime?' '+esc(p.originalTime):''):'') + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '" aria-pressed="'+(p.likedByMe?'true':'false')+'"><i class="'+(p.likedByMe?'fa-solid':'fa-regular')+' fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 留言 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + '</article>';
   }
   function renderFeed() {
     const node = document.getElementById('p2-circle-feed'); if (!node) return;
@@ -212,9 +212,26 @@
     document.getElementById('p2-post-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('text')).trim(); if (!text) return; GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), text, kind: '生活近況', comments: [], likes: 0 })); GH.closeSheet(); renderFeed(); GH.toast('近況已分享'); };
   }
   function comment(id) {
-    GH.sheet('回應近況', '<form id="p2-comment-form" class="p2-form"><label>留言<textarea name="text" maxlength="200" required placeholder="寫下想說的話"></textarea></label><button class="p2-primary full">送出回應</button></form>');
-    quickCare(document.getElementById('p2-comment-form'));
-    document.getElementById('p2-comment-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('text')).trim(); if (!text) return; GH.set(s => { const p = s.posts.find(x => x.id === id); if (p) p.comments.push({ author: '我', text }); }); GH.closeSheet(); renderFeed(); GH.toast('回應已送出'); };
+    const post=GH.state.posts.find(x=>x.id===id),groupId=GH.state.group?.id;if(!post||!groupId)return;
+    let shown=3,sending=false;
+    GH.sheet('留言','<div class="p2-comment-parent"><strong>'+esc(displayName(post.author))+'</strong><p>'+esc(post.text)+'</p></div><p id="p2-comment-total" class="p2-subtle"></p><div id="p2-comment-history"></div><form id="p2-comment-form" class="p2-form"><label>留言<textarea name="text" maxlength="150" required placeholder="寫一句關心，和家人聊聊"></textarea></label><small id="p2-comment-counter" class="p2-comment-counter">0／150 字</small><button id="p2-send-comment" class="p2-primary full" disabled>送出留言</button><p id="p2-comment-status" class="p2-small" role="status"></p></form>');
+    const form=document.getElementById('p2-comment-form'),field=form.querySelector('textarea'),button=document.getElementById('p2-send-comment');
+    const draw=()=>{
+      const comments=(post.comments||[]).map((item,index)=>({item,index,time:Date.parse(item.createdAt)||((Date.parse(post.createdAt)||0)+index)})).sort((a,b)=>a.time-b.time||a.index-b.index),visible=comments.slice(-shown);
+      document.getElementById('p2-comment-total').textContent='共 '+comments.length+' 則留言'+(comments.length?' · 顯示 '+Math.min(shown,comments.length)+' 則':'');
+      document.getElementById('p2-comment-history').innerHTML=(shown<comments.length?'<button id="p2-earlier-comments" type="button" class="p2-secondary full">查看更早留言</button>':'')+'<div class="p2-comment-thread">'+(visible.length?visible.map(({item:c})=>{const person=GH.state.group?.members.find(m=>m.name===c.author)||{name:c.author};return '<article class="p2-comment-entry">'+GH.avatar(person,{label:displayName(c.author)})+'<div><div class="p2-comment-heading"><strong>'+esc(displayName(c.author))+'</strong><time>'+esc(Number.isFinite(Date.parse(c.createdAt))?new Date(c.createdAt).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'先前留言')+'</time></div><p>'+esc(c.text)+'</p></div></article>';}).join(''):'<p class="p2-comment-empty">還沒有留言，傳一句關心給家人吧。</p>')+'</div>';
+      document.getElementById('p2-earlier-comments')?.addEventListener('click',()=>{shown+=10;draw();});
+    };
+    const update=()=>{document.getElementById('p2-comment-counter').textContent=field.value.length+'／150 字';button.disabled=sending||!field.value.trim()||field.value.length>150;};
+    draw();quickCare(form);field.addEventListener('input',update);
+    form.onsubmit=e=>{
+      e.preventDefault();if(sending)return;
+      const text=field.value.trim();if(!text||text.length>150)return;
+      if(GH.state.group?.id!==groupId||!GH.state.posts.some(x=>x.id===id))return GH.toast('健康圈或貼文已變更，請重新開啟');
+      sending=true;update();
+      GH.set(s=>{const current=s.posts.find(x=>x.id===id);current.comments||=[];current.comments.push({id:crypto.randomUUID(),author:'我',text,createdAt:new Date().toISOString()});});
+      form.reset();sending=false;draw();update();renderFeed();document.getElementById('p2-comment-status').textContent='留言已送出';
+    };
   }
   function editCircleName() {
     const isOwner=()=>GH.state.group?.members.some(m=>m.name==='我'&&m.role==='圈主');
@@ -231,7 +248,7 @@
     GH.sheet('分享現在的心情','<form id="p2-mood-share-form" class="p2-form"><fieldset class="p2-mood-choices"><legend>選擇想分享的心情</legend>'+moodChoices.map(([label,key])=>'<label class="p2-mood-choice"><input type="radio" name="mood" value="'+label+'" required>'+GH.art('mood-'+key)+'<span>'+label+'</span><i class="fa-solid fa-check"></i></label>').join('')+'</fieldset><label>補充一句話（選填）<textarea name="note" maxlength="200"></textarea></label><label class="p2-mood-save-option"><input type="checkbox" name="saveDiary"> 同時存成我的心情日記</label><p class="p2-small">分享給：'+esc(GH.state.group.name)+'。私人日記不會自動分享。</p><button id="p2-confirm-mood-share" class="p2-primary full" disabled>確認分享心情</button></form>');
     const form=document.getElementById('p2-mood-share-form');
     form.onchange=()=>document.getElementById('p2-confirm-mood-share').disabled=!form.querySelector('[name=mood]:checked');
-    form.onsubmit=e=>{e.preventDefault();if(!GH.state.group)return;const f=new FormData(form),mood=String(f.get('mood')),note=String(f.get('note')||'').trim();if(!moodChoices.some(x=>x[0]===mood))return;document.getElementById('p2-confirm-mood-share').disabled=true;const id=String(Date.now());GH.set(s=>{s.posts.unshift({id,author:'我',createdAt:new Date().toISOString(),time:'剛剛',kind:'心情分享',mood,text:note || '今天的心情：'+mood,comments:[],likes:0});if(f.has('saveDiary'))s.moods.push({id,value:mood,note,date:dayKey(new Date())});});GH.closeSheet();renderFeed();GH.toast('心情已分享');};
+    form.onsubmit=e=>{e.preventDefault();if(!GH.state.group)return;const f=new FormData(form),mood=String(f.get('mood')),note=String(f.get('note')||'').trim();if(!moodChoices.some(x=>x[0]===mood))return;document.getElementById('p2-confirm-mood-share').disabled=true;const id=String(Date.now());GH.set(s=>{s.posts.unshift({id,author:'我',createdAt:new Date().toISOString(),time:'剛剛',kind:'心情分享',mood,text:note || '今天的心情：'+mood,comments:[],likes:0});if(f.has('saveDiary'))s.moods.push({...GH.createMoodEntry(mood,note),id});});GH.closeSheet();renderFeed();GH.toast('心情已分享');};
   }
   function shareHealth(initial = {}) {
     const types = ['steps','sleep','heart','exercise','weight'];

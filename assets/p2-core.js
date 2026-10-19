@@ -275,5 +275,9 @@
       }
     }
   }, true);
-  window.GH = { state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, visualContext: name => window.GH_VISUALS?.context(name, state.member), KEY };
+  // Prototype timestamps use a single save-time instant; production creation time is server-owned.
+  function createMoodEntry(value,note='',at=new Date()) {
+    return {id:crypto.randomUUID(),value,note:String(note).trim(),createdAt:at.toISOString(),date:at.toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'}),time:at.toLocaleTimeString('en-GB',{timeZone:'Asia/Taipei',hourCycle:'h23',hour:'2-digit',minute:'2-digit'})};
+  }
+  window.GH = { createMoodEntry, state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, visualContext: name => window.GH_VISUALS?.context(name, state.member), KEY };
 })();
