@@ -10,18 +10,22 @@
   let p=s.taskPeriods[g.id];
   if(p&&p.end<today()&&!s.demoClosedWeek){(window.GH_DEMO?.tasks||[]).forEach(t=>recordResult(t,taskStatus(t,p)));s.pastTaskPeriods||=[];if(!s.pastTaskPeriods.some(x=>x.id===p.id))s.pastTaskPeriods.push(p);p=null;}
   if(!p){const range=weekRange();p=s.taskPeriods[g.id]={id:g.id+':'+range.start,...range,members:g.members.map(m=>m.name),unlocked:{},completed:{},completionDates:{}};}
-  p.unlocked||={};p.completed||={};p.completionDates||={};g.members.forEach(m=>{if(!p.members.includes(m.name))p.members.push(m.name);});return p;
+  p.unlocked||={};p.completed||={};p.completionDates||={};if(p.rulesVersion!==2){delete p.completed.group_balance;delete p.unlocked.group_balance;p.rulesVersion=2;}g.members.forEach(m=>{if(!p.members.includes(m.name))p.members.push(m.name);});return p;
  }
  function taskStatus(t,existing){
   const s=GH.state,g=s.group,p=existing||period();if(!p)return {count:0,joined:false,label:'共同任務預覽',active:false};
   const key=p.id+':'+t.id,completed=p.completed[t.id]||=[],active=today()>=p.start&&today()<=p.end;
   p.completionDates||={};p.completionDates[t.id]||={};
   const valid=r=>r.date>=p.start&&r.date<=p.end&&r.date<=today();
-  const has=(rows,type,min)=>rows.some(r=>r.type===type&&r.value>=min&&valid(r));
+  const has=(rows,type,min)=>rows.some(r=>r.type===type&&Number(r.value)>=min&&valid(r));
+  const total=(rows,type)=>[...rows.filter(r=>r.type===type&&valid(r)).reduce((days,r)=>days.set(r.date,Number(r.value)),new Map()).values()].reduce((a,b)=>a+b,0);
   if(active)g.members.forEach(m=>{
    const rows=m.name==='我'?(s.device==='connected'?s.records.filter(r=>s.healthPreferences.includes(r.type)&&/手機|裝置/.test(r.source)):[]):(m.healthRecords||[]);
    const games=(m.name==='我'?s.gameHistory:m.gameHistory)||[];
-   const eligible=t.type==='gameDays'?new Set(games.filter(r=>r.completed===true&&valid(r)).map(r=>r.date)).size>=t.min:t.type==='both'?has(rows,'steps',6000)&&has(rows,'exercise',15):has(rows,t.type,t.min);
+   const journals=m.name==='我'?(s.moods||[]):(m.moods||[]);
+   const diaryDays=new Set(journals.filter(r=>r.value&&valid(r)).map(r=>r.createdAt?new Date(r.createdAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'}):r.date).filter(date=>date>=p.start&&date<=p.end&&date<=today())).size;
+   const sleepDays=new Set(rows.filter(r=>r.type==='sleep'&&Number(r.value)>0&&r.sleepDailyTotal===true&&valid(r)).map(r=>r.date)).size;
+   const eligible=t.type==='gameDays'?new Set(games.filter(r=>r.completed===true&&valid(r)).map(r=>r.date)).size>=t.min:t.type==='moodDays'?diaryDays>=t.min:t.type==='both'?has(rows,'steps',6000)&&total(rows,'exercise')>=15&&sleepDays>=3:t.type==='exercise'?total(rows,'exercise')>=t.min:has(rows,t.type,t.min);
    if(eligible&&!completed.includes(m.name)){completed.push(m.name);p.completionDates[t.id][m.name]=today();}
   });
   if(completed.length>=t.members)p.unlocked[t.id]=true;

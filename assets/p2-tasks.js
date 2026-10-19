@@ -5,7 +5,7 @@
   const esc = GH.escape;
   const main = () => document.getElementById('p2-main');
   let view = new URLSearchParams(location.search).get('view')==='history'?'history':'list';
-  let category = 'group';
+  let category = new URLSearchParams(location.search).get('category')==='personal'?'personal':'group';
   let shown = 20;
   let historyCategory = 'all';
   const recent = date => date && date >= new Date(Date.now() - 6 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
@@ -35,6 +35,8 @@
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { view = b.dataset.view; shown = 20; render(); });
 
     if (view === 'list') renderList(); else renderHistory();
+    const selectedTask=new URLSearchParams(location.search).get('task');
+    if(selectedTask&&view==='list'){const task=DATA.tasks.find(t=>t.id===selectedTask);if(task)openTask(task);const p=new URLSearchParams(location.search);p.delete('task');window.history.replaceState(null,'',location.pathname+(p.size?'?'+p:''));}
     GH.scene('tasks');
     document.getElementById('app-root')?.classList.toggle('p2-plain-page',history);
   }
@@ -58,8 +60,8 @@
     }
   }
   function openTask(task) {
-    const x=GH.family.taskStatus(task),p=x.period;if(!x.joined)return GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.shortDetail)+'</p><p>這是本週共同任務預覽。加入健康圈後才會開始計算進度。</p><a class="p2-primary full" href="group.html">建立或加入健康圈</a>');if(!x.active)return GH.toast('本期任務已結束');
-    GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.shortDetail)+'</p>'+(p?'<p>任務期間：'+p.start+' ～ '+p.end+' 23:59</p><p class="p2-small">請於截止前完成資料同步並領取，逾期不補領。</p>':'')+'<p><strong>'+esc(x.label)+'</strong></p>'+GH.family.completedMarkup(task)+'<p>至少 '+task.members+' 人完成解鎖。期間內，每位完成個人條件的成員都能各自領取一次，沒有先後名額限制。</p>'+(x.canClaim?'<button id="p2-claim-task" class="p2-primary full">領取 '+task.points+' 健康點</button>':x.claimed?'<div class="p2-success">已領取獎勵</div>':'<div class="p2-actions"><a class="p2-secondary" href="health.html">查看健康紀錄</a><a class="p2-secondary" href="group.html">查看健康圈</a></div>'));
+    const x=GH.family.taskStatus(task),p=x.period;if(!x.joined)return GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.detail)+'</p><p>這是本週共同任務預覽。加入健康圈後才會開始計算進度。</p><a class="p2-primary full" href="group.html">建立或加入健康圈</a>');if(!x.active)return GH.toast('本期任務已結束');
+    GH.sheet(task.title,'<span class="p2-reward">每人 +'+task.points+' 健康點</span><p>'+esc(task.detail)+'</p>'+(p?'<p>任務期間：'+p.start+' ～ '+p.end+' 23:59</p><p class="p2-small">請於截止前完成資料同步並領取，逾期不補領。</p>':'')+'<p><strong>'+esc(x.label)+'</strong></p>'+GH.family.completedMarkup(task)+'<p>至少 '+task.members+' 人完成解鎖。期間內，每位完成個人條件的成員都能各自領取一次，沒有先後名額限制。</p>'+(x.canClaim?'<button id="p2-claim-task" class="p2-primary full">領取 '+task.points+' 健康點</button>':x.claimed?'<div class="p2-success">已領取獎勵</div>':'<div class="p2-actions"><a class="p2-secondary" href="'+(task.type==='moodDays'?'health.html?view=mood':task.type==='gameDays'?'activities.html?category=personal':'health.html')+'">'+(task.type==='moodDays'?'寫心情日記':task.type==='gameDays'?'前往個人遊戲':'查看健康紀錄')+'</a><a class="p2-secondary" href="group.html">查看健康圈</a></div>'));
     document.getElementById('p2-claim-task')?.addEventListener('click',()=>{if(!GH.family.claim(task))return;GH.closeSheet();render();GH.toast('已獲得 '+task.points+' 健康點');});
   }
   function rememberCompletions() { GH.rememberTaskCompletions(); GH.save(); }

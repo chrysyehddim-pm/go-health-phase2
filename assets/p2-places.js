@@ -5,9 +5,11 @@
   const icons = ['fa-bowl-food','fa-tree','fa-person-running','fa-hospital','fa-prescription-bottle-medical'];
   const params = new URLSearchParams(location.search);
   const demoStates = ['region-data','region-empty','category-empty','location','location-denied','map-error','data-few','data-many'];
-  const demo = params.get('demoPlaces') === '1' || demoStates.includes(params.get('placeState'));
+  const demo = params.get('demoPlaces') === '1' && !params.get('family');
+  const scenario = demoStates.includes(params.get('placeState'));
   const familyName = params.get('family');
   let panel, center, centerKey = '', category, map, mapPromise, markers = [], groupId, invalid = false, locateRun = 0;
+  let initialEmpty = true;
   const entries = new Map(), detailEntries = new Map();
   const $ = id => document.getElementById(id);
   function family() { return familyName ? GH.locationContext.get(familyName) : null; }
@@ -63,7 +65,8 @@
       entry.places.forEach(p=>{if(p.location)bounds.extend(p.location);});map.fitBounds(bounds,24);
     }
   }
-  async function searchCategory(name) {
+  async function searchCategory(name, interactive=true) {
+    if(interactive&&initialEmpty&&['region-empty','category-empty'].includes(params.get('placeState'))){initialEmpty=false;clearEntries();}
     if (!center || invalid || !allowed() || !categories.includes(name)) return;
     category=name;drawCategories();showNote();updateTools();
     $('p2-place-list-intro').hidden=true;
@@ -75,6 +78,7 @@
     const entry={key,category:name,node,status:'loading',places:[]};entries.set(key,entry);
     const status=document.createElement('div');status.className='p2-place-result-head';status.setAttribute('role','status');status.textContent='正在尋找附近的'+name+'…';node.appendChild(status);
     entry.timer=setTimeout(()=>{if(entries.get(key)===entry&&entry.status==='loading')showError(entry);},22000);
+    if(initialEmpty&&['region-empty','category-empty'].includes(params.get('placeState'))){clearTimeout(entry.timer);entry.status='ready';status.innerHTML=empty('附近沒有符合的去處','試試其他分類，或選擇其他地區。');return;}
     if(demo){await fixtureSearch(entry,status);return;}
     try {
       await maps.search(node,{lat:center.lat,lng:center.lng},name,{
@@ -98,11 +102,11 @@
       const data=await fixtureData();if(entries.get(entry.key)!==entry)return;
       const bounds=maps.foodBounds(center);
       let places=data.places.filter(p=>p.type===entry.category).filter(p=>entry.category==='健康飲食'?p.lat>=bounds.south&&p.lat<=bounds.north&&p.lng>=bounds.west&&p.lng<=bounds.east:maps.distance(center,p)<=1).sort((a,b)=>maps.distance(center,a)-maps.distance(center,b)).slice(0,10).map(p=>({...p,fixture:true,location:{lat:p.lat,lng:p.lng}}));
-      if(['region-empty','category-empty'].includes(params.get('placeState')))places=[];
+      if(initialEmpty&&['region-empty','category-empty'].includes(params.get('placeState')))places=[];
       clearTimeout(entry.timer);entry.status='ready';entry.places=places;
       status.textContent='找到 '+places.length+' 個去處';
       const list=document.createElement('div');list.className='p2-place-list';
-      list.innerHTML=places.length?places.map((p,i)=>'<button class="p2-place-card" data-fixture-place="'+i+'"><span class="p2-place-icon '+esc(p.tone)+'"><i class="fa-solid '+esc(p.icon)+'"></i></span><span class="body"><strong>'+esc(p.name)+'</strong><small>'+esc(p.address)+'</small>'+(center.mode==='location'?'<small>直線距離約 '+Math.round(maps.distance(center,p)*1000)+' 公尺</small>':'')+'<small>查看地點資訊與分享</small></span><i class="fa-solid fa-chevron-right"></i></button>').join(''):empty('附近沒有符合的去處','試試其他分類，或選擇其他地區。');
+      list.innerHTML=places.length?'<p class="p2-small p2-muted">以下為固定示意資料；實際評分與營業資訊以 Google 地圖為準。</p>'+places.map((p,i)=>'<button class="p2-place-card p2-place-compact" data-fixture-place="'+i+'"><span class="body"><strong>'+esc(p.name)+'</strong><small>'+esc(p.address)+'</small><small>'+esc(p.type)+'</small>'+(p.rating?'<small>'+esc(p.rating)+' ★'+(p.ratingCount?'（'+esc(p.ratingCount)+'）':'')+'</small>':'')+(p.hours?'<small>'+esc(p.hours)+'</small>':'')+'<small>查看地點與分享</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></button>').join(''):empty('附近沒有符合的去處','試試其他分類，或選擇其他地區。');
       list.querySelectorAll('button').forEach(b=>b.onclick=()=>openPlace(places[Number(b.dataset.fixturePlace)],entry.category));entry.node.appendChild(list);
     } catch (_) {showError(entry);}
   }
@@ -111,13 +115,13 @@
     locateRun++;center=next;
     const key=next.lat+','+next.lng;
     if(key!==centerKey){clearEntries();centerKey=key;}
-    category=nextCategory||category;
+    category=nextCategory||category||'公園步道';
     $('p2-place-location-label').textContent=next.label;
     $('p2-place-location-detail').textContent=next.mode==='region'?'以行政區代表位置搜尋，並非你的實際位置。':next.mode==='family'?'以家人最後分享位置搜尋。':'距離為約略直線距離，實際路線請查看 Google 地圖。';
     drawCategories();showNote();updateTools();
     const requestedKey=centerKey;
     await ensureMap();
-    if(category&&centerKey===requestedKey)searchCategory(category);
+    if(category&&centerKey===requestedKey)searchCategory(category,false);
   }
   function openAreaPicker() {
     if(familyName)return;
@@ -129,7 +133,7 @@
     confirm.onclick=()=>{
       const point=window.GH_AREA_CENTERS?.[(county.value+district.value).replaceAll('台','臺')];
       if(!point)return GH.toast('這個地區的位置資料暫時無法使用，請稍後再試');
-      GH.closeSheet();setCenter({lat:point.center[0],lng:point.center[1],label:county.value+district.value,mode:'region'});
+      GH.closeSheet();initialEmpty=false;clearEntries();$('p2-location-notice').hidden=true;setCenter({lat:point.center[0],lng:point.center[1],label:county.value+district.value,mode:'region'});
     };
   }
   function locate() {
@@ -137,7 +141,7 @@
     const reset=()=>{button.disabled=false;button.textContent='使用我的位置';};
     const failure=()=>{if(run!==locateRun)return;reset();$('p2-location-notice').hidden=false;$('p2-location-notice').textContent='尚未取得位置權限，也可以選擇地區開始探索。';};
     if(!navigator.geolocation){failure();return;}
-    navigator.geolocation.getCurrentPosition(pos=>{if(run!==locateRun)return;reset();$('p2-location-notice').hidden=true;setCenter({lat:pos.coords.latitude,lng:pos.coords.longitude,label:'我的目前位置',mode:'location'});},failure,{timeout:10000,maximumAge:300000});
+    navigator.geolocation.getCurrentPosition(pos=>{if(run!==locateRun)return;reset();initialEmpty=false;$('p2-location-notice').hidden=true;setCenter({lat:pos.coords.latitude,lng:pos.coords.longitude,label:'我的目前位置',mode:'location'});},failure,{timeout:10000,maximumAge:300000});
   }
   function parkDetails() {
     let park=$('p2-place-detail-park');if(!park){park=document.createElement('div');park.id='p2-place-detail-park';park.hidden=true;document.body.appendChild(park);}
@@ -184,11 +188,11 @@
     if(panel?.isConnected){if(allowed())return;return;}
     panel=$('p2-places-panel')||$('p2-discovery-panel');
     const context=family();if(context?.available)groupId=context.groupId;
-    panel.innerHTML=(familyName?'<a class="p2-back-button" href="group.html?view=location&member='+encodeURIComponent(familyName)+'">返回'+esc(familyName)+'的最後位置</a>':'')+'<div class="p2-section-head"><h2>'+(familyName?esc(familyName)+'附近的去處':'附近健康去處')+'</h2></div>'+(familyName?'<div class="p2-family-search-context"><strong>'+esc(context.available?context.label:context.label)+'</strong><p>'+(context.available?(context.age>=86400000?'這是較早的位置，建議先確認家人目前所在。':'以家人最後分享的位置搜尋，並非即時定位。'):esc(context.reason))+'</p></div>':'<div class="p2-actions p2-place-actions"><button id="p2-my-location" class="p2-primary">使用我的位置</button><button id="p2-city-location" class="p2-secondary">選擇地區</button></div>')+'<div id="p2-location-notice" class="p2-location-notice" hidden></div><div class="p2-location-label"><strong id="p2-place-location-label">尚未選擇位置</strong><p id="p2-place-location-detail">選好位置後，再選擇想查看的分類。</p></div><div id="p2-map" class="p2-map">'+empty('選擇位置開始探索','使用目前位置，或選擇想查看的地區。')+'</div><div id="p2-map-tools" class="p2-map-tools"></div><div class="p2-pill-row p2-place-filter" id="p2-place-cats"></div><p id="p2-place-scope" class="p2-small"></p><div id="p2-place-list-intro"></div><div id="p2-place-list" aria-live="polite"></div><p class="p2-subtle">營業資訊可能變動，出發前可到 Google 地圖確認。</p>';
+    panel.innerHTML=(familyName?'<a class="p2-back-button" href="group.html?view=location&member='+encodeURIComponent(familyName)+'">返回'+esc(familyName)+'的最後位置</a>':'')+'<div class="p2-section-head"><h2>'+(familyName?esc(familyName)+'附近的去處':'附近健康去處')+'</h2></div>'+(familyName?'<div class="p2-family-search-context"><strong>'+esc(context.available?context.label:context.label)+'</strong><p>'+(context.available?(context.age>=86400000?'這是較早的位置，建議先確認家人目前所在。':'以家人最後分享的位置搜尋，並非即時定位。'):esc(context.reason))+'</p></div>':'<div class="p2-actions p2-place-actions"><button id="p2-my-location" class="p2-primary">使用我的位置</button><button id="p2-city-location" class="p2-secondary">選擇地區</button></div>')+'<div id="p2-location-notice" class="p2-location-notice" hidden></div><div class="p2-location-label"><strong id="p2-place-location-label">尚未選擇位置</strong><p id="p2-place-location-detail">選擇位置後，會自動顯示附近的公園步道；也能切換其他分類。</p></div><div id="p2-map" class="p2-map">'+empty('選擇位置開始探索','使用目前位置，或選擇想查看的地區。')+'</div><div id="p2-map-tools" class="p2-map-tools"></div><div class="p2-pill-row p2-place-filter" id="p2-place-cats"></div><p id="p2-place-scope" class="p2-small"></p><div id="p2-place-list-intro"></div><div id="p2-place-list" aria-live="polite"></div><p class="p2-subtle">營業資訊可能變動，出發前可到 Google 地圖確認。</p>';
     if(!familyName){$('p2-city-location').onclick=openAreaPicker;$('p2-my-location').onclick=locate;}
     drawCategories();showNote();
     if(familyName){if(!context.available){invalidate(context);return;}setCenter({...context.center,label:familyName+'的最後位置 · '+context.area,mode:'family',capturedAt:context.member.lastLocation.updatedAt},'健康飲食');}
-    else if(demo){
+    else if(demo||scenario){
       const state=params.get('placeState');
       if(state==='location-denied'){$('p2-location-notice').hidden=false;$('p2-location-notice').textContent='尚未取得位置權限，可改用選擇地區。';}
       else setCenter({lat:25.0264,lng:121.5435,label:'臺北市大安區',mode:'region'},state==='category-empty'?'健康飲食':'公園步道');

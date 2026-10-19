@@ -30,7 +30,9 @@
   father.status='剛更新了最後位置';
   father.locationSharing=true;
   father.lastLocation={lat:25.0338,lng:121.5350,area:'臺北市大安區',place:'大安森林公園附近',updatedAt:new Date(Date.now()-18*60000).toISOString()};
-  param.set('view','location');param.set('member','爸爸');
+  s.demoFamilyLocation=true;
+  const sister=s.group.members.find(m=>m.name==='姊姊');sister.locationSharing=true;sister.lastLocation={lat:25.0338,lng:121.5350,area:'臺北市大安區',updatedAt:new Date(Date.now()-8*86400000).toISOString()};
+  const mom=s.group.members.find(m=>m.name==='媽媽');mom.locationSharing=true;mom.lastLocation={lat:25.0338,lng:121.5350,area:'臺北市大安區',place:'大安森林公園附近',updatedAt:new Date(Date.now()-2*86400000).toISOString()};
  }
 
  if(id.startsWith('task-')){

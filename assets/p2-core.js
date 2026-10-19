@@ -202,8 +202,8 @@
     const series={steps:[6200,7100,6800,8200,7600,6500,7840],sleep:[7.2,6.8,7.5,7.1,6.9,7.6,7.3],heart:[72,70,74,71,69,73,72],exercise:[20,15,30,25,18,35,22]};
     const records=[];
     requested.forEach(type=>{
-      if(type==='weight') [28,21,14,7,1].forEach((days,i)=>records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',type,value:[65.4,65.2,65.3,65.1,65][i],date:dateAgo(days)}));
-      else if(series[type])for(let days=29;days>=0;days--)records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',type,value:series[type][(29-days)%7],date:dateAgo(days)});
+      if(type==='weight') [28,21,7,4,1].forEach((days,i)=>records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',type,value:[65.4,65.2,65.3,65.1,65][i],date:dateAgo(days)}));
+      else if(series[type])for(let days=29;days>=0;days--)records.push({validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',resting:type==='heart',intensity:type==='exercise'?'moderate':undefined,type,value:series[type][(29-days)%7],date:dateAgo(days)});
     });
     if(state.demoHealthMode==='empty')return [];
     if(state.demoHealthMode==='stale')records.forEach(r=>{const d=new Date(r.date+'T12:00:00+08:00');d.setDate(d.getDate()-12);r.date=d.toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});});
@@ -223,7 +223,7 @@
       if (!payload || !Array.isArray(payload.records)) throw Error('Invalid bridge payload');
       const rows = payload.records.filter(r => requested.includes(r.type) && Number.isFinite(Number(r.value)) && Number(r.value) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
       set(s => {
-        s.records = rows.map(r=>({id:r.type+'-'+r.date,type:r.type,value:Number(r.value),date:r.date,source:'HAPPY GO App · 手機健康資料',validDay:r.validDay===true,fullDay:r.fullDay===true,sleepDailyTotal:r.sleepDailyTotal===true}));
+        s.records = rows.map(r=>({id:r.type+'-'+r.date,type:r.type,value:Number(r.value),date:r.date,source:'HAPPY GO App · 手機健康資料',validDay:r.validDay===true,fullDay:r.fullDay===true,sleepDailyTotal:r.sleepDailyTotal===true,resting:r.resting===true,measurementContext:r.measurementContext,intensity:r.intensity,moderateMinutes:Number(r.moderateMinutes||0),vigorousMinutes:Number(r.vigorousMinutes||0)}));
         s.device = 'connected'; s.healthSource = 'HAPPY GO App';
         s.healthUpdatedAt = new Date().toISOString(); s.healthSync = 'ready';
       });
