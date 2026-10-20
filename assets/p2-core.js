@@ -24,6 +24,8 @@
     gameHistory: sampleHistory(),
     pointAwards: [],
     taskClaims: [],
+    taskAchievements: {},
+    taskClaimLedger: {},
     member: { isHappyGo: true, consent: false, gender: 'female' }
   });
   let state;
@@ -138,7 +140,7 @@
       '<div class="p2-card-copy"><span class="p2-reward">+ ' + task.points + ' 健康點／人</span><h3>' + escape(task.title) + '</h3><div class="p2-task-meta"><span><i class="fa-regular fa-calendar"></i> '+range+'</span><span><i class="fa-solid fa-users"></i> 需 '+task.members+' 人</span></div><p>' + escape(task.shortDetail || task.detail) + '</p></div>' +
       '<div class="p2-task-bottom">' +
       (href ? '<span class="p2-task-link-label">'+actionLabel+' <i class="fa-solid fa-chevron-right"></i></span>' : '<button class="p2-text-button" data-task="' + task.id + '">' + actionLabel + ' <i class="fa-solid fa-chevron-right"></i></button>') + '</div>'+
-      (status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'<div class="p2-task-completed-footer"><span class="p2-task-state preview">加入健康圈完成任務</span></div>')+'</' + tag + '>';
+      (status?.joined?'<div class="p2-task-completed-footer">'+window.GH_FAMILY.completedMarkup(task)+'</div>':'<div class="p2-task-completed-footer"><span class="p2-task-state preview">任務預覽</span></div>')+'</' + tag + '>';
   }
   function shell(active, title) {
     const header = document.getElementById('p2-header');
@@ -166,7 +168,9 @@
     clearTimeout(node._timer);
     node._timer = setTimeout(() => node.classList.remove('visible'), 3200);
   }
+  let sheetCancel = null;
   function sheet(title, html) {
+    sheetCancel = null;
     let overlay = document.getElementById('p2-sheet');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -185,10 +189,20 @@
     return overlay;
   }
   function closeSheet() {
+    const cancel = sheetCancel;
+    sheetCancel = null;
     const overlay = document.getElementById('p2-sheet');
     if (overlay) overlay.classList.remove('open');
     document.body.classList.remove('modal-open');
+    cancel?.();
   }
+  function confirmDelete(title,description,onDelete,onCancel){
+    sheet(title,'<p class="p2-delete-description">'+escape(description)+'</p><div class="p2-actions"><button type="button" id="p2-cancel-delete" class="p2-secondary">取消</button><button type="button" id="p2-confirm-delete" class="p2-danger">確認刪除</button></div>');
+    sheetCancel=onCancel||null;
+    document.getElementById('p2-cancel-delete').onclick=closeSheet;
+    document.getElementById('p2-confirm-delete').onclick=e=>{e.currentTarget.disabled=true;sheetCancel=null;closeSheet();onDelete();};
+  }
+  const ownsContent=item=>item?.authorId?item.authorId===(state.member.id||'demo-member-self'):item?.author==='我';
   function rememberTaskCompletions() { window.GH_FAMILY?.remember(); }
   let healthSyncRun = 0;
   function cancelHealthSync() { healthSyncRun++; }
@@ -279,5 +293,5 @@
   function createMoodEntry(value,note='',at=new Date()) {
     return {id:crypto.randomUUID(),value,note:String(note).trim(),createdAt:at.toISOString(),date:at.toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'}),time:at.toLocaleTimeString('en-GB',{timeZone:'Asia/Taipei',hourCycle:'h23',hour:'2-digit',minute:'2-digit'})};
   }
-  window.GH = { createMoodEntry, state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, visualContext: name => window.GH_VISUALS?.context(name, state.member), KEY };
+  window.GH = { createMoodEntry, state, fresh, set, save, escape, format, shell, scene, taskCard, avatar, toast, sheet, closeSheet, confirmDelete, ownsContent, art, syncHealthData, syncSteps:syncHealthData, cancelHealthSync, rememberTaskCompletions, latest, metric, articleCategory, pointBalance, visualContext: name => window.GH_VISUALS?.context(name, state.member), KEY };
 })();

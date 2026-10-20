@@ -964,5 +964,17 @@ gmp-place-search,gmp-place-details{--gmp-mat-font-display-small:700 24px/1.5 'No
 .p2-comment-counter { text-align:right; color:#657b70; font-size:15px; }
 .p2-comment-empty { color:#657b70; font-size:18px; line-height:1.7; }
 #p2-mood-form > label,#p2-comment-form > label { font-size:18px; }
+.p2-delete-link { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 4px; border:0; background:transparent; color:#a33f32; font:inherit; font-size:17px; cursor:pointer; text-underline-offset:4px; }
+.p2-delete-link:hover { text-decoration:underline; }
+.p2-delete-link:focus-visible { outline:3px solid #a33f32; outline-offset:3px; border-radius:6px; }
+.p2-post-heading > div { min-width:0; flex:1; }
+.p2-delete-post { flex:none; margin-left:auto; color:#96665b; min-width:44px; min-height:44px; }
+.p2-delete-description { font-size:18px; line-height:1.8; overflow-wrap:anywhere; }
+.p2-care-period { color:#6a776c; font-size:16px; margin:6px 0 12px; }
+.p2-care-intro { font-size:18px; line-height:1.65; }
+.p2-care-done { border-top:1px solid #dfdacb; margin-top:16px; padding-top:12px; }
+.p2-care-done summary { cursor:pointer; min-height:44px; padding:8px 0; font-size:18px; font-weight:700; color:#28785a; }
+.p2-care-person p { overflow-wrap:anywhere; }
+@media(max-width:360px) { .p2-care-person { align-items:flex-start; flex-wrap:wrap; } .p2-care-person > div { flex-basis:100%; } .p2-care-person > button { margin-left:auto; } }
 #p2-mood-form .p2-mood-choices legend { font-size:20px; }
 #p2-mood-form > .p2-small { font-size:16px; line-height:1.7; }

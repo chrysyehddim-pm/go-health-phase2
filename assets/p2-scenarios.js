@@ -15,14 +15,26 @@
  }
  if(id==='no-data'){s.device='connected';s.healthPreferences=['steps','sleep'];s.healthConsent=true;s.demoHealthMode='empty';}
  if(id==='stale')s.demoHealthMode='stale';
- if(id==='care'){s.group.members[2].lastLoginAt=day(-8);s.group.members[2].lastGameAt=day(-8);}
- if(['care-health','care-expired','care-many','care-recovered','care-insufficient','care-steps'].includes(id)){
-  const health=(short=true,count=30)=>Array.from({length:count},(_,i)=>({type:'sleep',value:short&&i<8?6:7.5,date:day(-1-i),validDay:true,fullDay:true,sleepDailyTotal:true}));
-  const mom=s.group.members[2];mom.age=68;mom.healthRecords=health();
-  if(id==='care-insufficient')mom.healthRecords=health(true,10);
-  if(id==='care-steps'){mom.stepReminderApplicable=true;mom.healthRecords=health().map((r,i)=>({...r,type:'steps',value:i<8?4000:6000}));}
-  if(id==='care-many'){s.group.members[1].age=70;s.group.members[1].healthRecords=health();s.group.members[3].lastLoginAt=day(-8);s.group.members[3].lastGameAt=day(-8);s.group.members.push({name:'阿姨',role:'成員',age:62,careConsent:true,lastLoginAt:day(-8),lastGameAt:day(0)});}
-  if(['care-expired','care-recovered'].includes(id)){s.careEpisodes={'circle-family:媽媽:sleep':{active:true}};s.careEvents=[{id:'care-old',groupId:'circle-family',subject:'媽媽',rules:['sleep'],reasons:['近期有幾天休息較少'],createdAt:new Date(Date.now()-8*86400000).toISOString(),recipients:['我','爸爸','姊姊'],responses:[]}];s.notifications.unshift({id:'care-old-note',title:'一起關心媽媽',detail:'先前收到的關心提醒',url:'group.html',read:true});if(id==='care-recovered')mom.healthRecords=health(false);}
+ if(id==='care'||id.startsWith('care-')){
+  const current=GH.family.weekRange(),shift=(date,n)=>new Date(new Date(date+'T12:00:00+08:00').getTime()+n*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});
+  const lastWeek=shift(current.start,-7),before=shift(current.start,-8),health=(type,low=true,count=7)=>Array.from({length:count},(_,i)=>({type,value:type==='sleep'?(low&&i<3?6:7.5):(low&&i<3?3800:6500),date:shift(lastWeek,i),validDay:true,fullDay:true,sleepDailyTotal:type==='sleep'}));
+  s.careRulesVersion=2;s.group.members.forEach(m=>{m.joinedAt=shift(current.start,-30);m.lastLoginAt=day(0);m.lastGameAt=day(0);m.healthRecords=[];m.age=60;});
+  const father=s.group.members[1],mom=s.group.members[2],sister=s.group.members[3];
+  mom.healthRecords=health('sleep');
+  if(id==='care'){mom.healthRecords=[];mom.lastLoginAt=before;mom.lastGameAt=before;}
+  if(id==='care-insufficient')mom.healthRecords=health('sleep',true,4);
+  if(id==='care-steps')mom.healthRecords=health('steps');
+  if(id==='care-many'){
+   father.lastLoginAt=before;mom.healthRecords=[...health('sleep'),...health('steps')];sister.lastGameAt=before;
+   s.group.members.push({name:'阿姨',role:'成員',age:62,careConsent:true,joinedAt:shift(current.start,-30),lastLoginAt:day(0),lastGameAt:day(0),healthRecords:health('steps')});
+  }
+  if(id==='care-recovered')mom.healthRecords=health('sleep',false);
+  if(param.get('careCase')==='returned'){father.lastLoginAt=new Date().toISOString();sister.lastGameAt=new Date().toISOString();}
+  if(param.get('careCase')==='next-week'||id==='care-expired'){
+   s.careEvents=[{id:'care-previous-week',groupId:s.group.id,subject:'媽媽',subjectId:'demo-member-媽媽',weekStart:lastWeek,weekEnd:shift(current.start,-1),rules:['sleep'],reasons:['上週有幾天休息較少'],recipients:['我','爸爸','姊姊'],responses:[{author:'我',text:'記得休息',createdAt:lastWeek+'T10:00:00+08:00'}],createdAt:lastWeek+'T00:00:00+08:00'}];
+   if(id==='care-expired')mom.healthRecords=health('sleep',false);
+  }
+  s.demoCareCase=param.get('careCase')||'weekly';
  }
 
  if(id==='family-location'){
@@ -36,7 +48,7 @@
  }
 
  if(id.startsWith('task-')){
-  const g=s.group,p={id:g.id+':'+day(-3),...GH.family.weekRange(),members:g.members.map(m=>m.name),unlocked:{},completed:{}};s.taskPeriods[g.id]=p;
+  const g=s.group,p={id:g.id+':'+GH.family.weekRange().start,...GH.family.weekRange(),members:g.members.map(m=>m.name),unlocked:{},completed:{}};s.taskPeriods[g.id]=p;
   if(id==='task-wait'){g.members.slice(1).forEach(m=>m.healthRecords=[]);}
   if(id==='task-unlocked'){s.records=[];s.demoHealthMode='empty';p.completed.group_steps=['爸爸','媽媽'];p.unlocked.group_steps=true;g.members.filter(m=>m.name==='姊姊').forEach(m=>m.healthRecords=[]);}
   if(id==='task-ready'||id==='task-claimed'){p.completed.group_steps=['我','爸爸','媽媽'];p.unlocked.group_steps=true;}
@@ -46,13 +58,25 @@
   if(['task-next','task-joined'].includes(id)){p.members=p.members.filter(n=>n!=='我');g.members[0].joinedAt=day(0);s.records[0].date=p.start;}
   if(id==='task-game'){s.device='disconnected';s.records=[];s.healthPreferences=[];g.members.slice(1).forEach(m=>m.gameHistory=[{date:day(0),completed:true},{date:day(-1),completed:true}]);}
  }
+ if(param.get('taskCase')==='switched'&&id==='task-claimed'){
+  const old=s.group,range=GH.family.weekRange();s.group={...old,id:'circle-friends',name:'親友健康圈',members:old.members.map(m=>({...m}))};
+  const oldKey='demo-member-self:'+range.start+':group_steps';s.taskClaimLedger={[oldKey]:{memberId:'demo-member-self',taskId:'group_steps',periodStart:range.start,groupId:old.id,createdAt:new Date().toISOString()}};
+ }
+ if(param.get('taskCase')==='member-exit'&&id==='task-full'){
+  s.group.members.forEach(m=>m.role=m.name==='我'?'圈主':'成員');
+  const p=s.taskPeriods[s.group.id];p.completed={group_steps:['我','爸爸']};p.unlocked={group_steps:true};
+ }
+ if(param.get('taskCase')==='revoked'&&id==='task-ready'){s.device='disconnected';s.healthPreferences=[];}
+ if(param.has('taskCase'))s.demoTaskCase=param.get('taskCase');
  if(id==='mood'){
   const samples=[['開心','今天和家人一起散步，很開心。'],['疲倦','今天事情比較多，想早一點休息。'],['平靜','在家聽音樂，心情很放鬆。'],['開心','午餐吃到喜歡的料理。'],['焦慮','明天有事情要處理，提醒自己慢慢來。'],['平靜','傍晚散步吹吹風。'],['低落','今天有點提不起精神。'],['開心','和朋友聊了很久。'],['疲倦','昨晚睡得比較少。'],['平靜','今天過得很平穩。'],['開心','完成了想做的事情。'],['焦慮','事情有點多，先列清單整理。'],['平靜','泡杯茶休息一下。'],['開心','收到家人的關心。']];
   s.moods=samples.map(([value,note],i)=>({id:'mood-'+(i+1),date:day(-i*2),time:i%2?'21:10':'18:30',value,note}));
   s.moods.push({id:'mood-same-day',date:day(0),time:'08:20',value:'平靜',note:'早上喝杯茶，慢慢開始今天。'});
  }
+ if(id==='mood')s.posts.unshift({id:'shared-mood-demo',author:'我',diaryId:'mood-1',mood:'開心',kind:'心情分享',text:'今天和家人一起散步，很開心。',createdAt:new Date().toISOString(),time:'今天',comments:[],likes:0});
  if(id==='new')s.gameHistory=[];
  if(requested==='S05'){s.group.members.push({name:'阿姨',role:'成員',avatarUrl:'images/avatars/member-aunt.webp',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)});}
+ if(requested==='S05')s.posts.unshift({id:'my-demo-post',author:'我',createdAt:new Date().toISOString(),time:'剛剛',kind:'生活近況',text:'今天和家人一起走走，留下一段好心情。',comments:[],likes:0});
  if(requested==='S05'&&s.posts[0])s.posts[0].comments=Array.from({length:16},(_,i)=>({id:'comment-demo-'+i,author:s.group.members[i%5].name,text:['今天一起走走，很開心。','慢慢來，照自己的步調。','謝謝分享，記得好好休息。','下次也想一起去！'][i%4],createdAt:new Date(Date.now()-(16-i)*60000).toISOString()}));
  if(requested==='S06'){s.group.name='我的健康圈';s.group.members=[{name:'我',role:'圈主',avatarUrl:'images/avatars/member-self.webp',careConsent:false,lastLoginAt:day(0),lastGameAt:day(0)}];s.device='disconnected';s.healthPreferences=[];s.records=[];s.gameHistory=[];}
  if(id==='history'){
@@ -63,5 +87,5 @@
  }
  Object.keys(GH.state).forEach(k=>delete GH.state[k]);Object.assign(GH.state,s);GH.save();GH.family.remember();GH.save();
  ['gohealth_p2_exchanges','gohealth_latest_exchange'].forEach(k=>sessionStorage.removeItem(k));
- param.delete('scenario');history.replaceState(null,'',location.pathname+(param.size?'?'+param:'')+location.hash);
+ param.delete('scenario');param.delete('careCase');param.delete('taskCase');history.replaceState(null,'',location.pathname+(param.size?'?'+param:'')+location.hash);
 })();

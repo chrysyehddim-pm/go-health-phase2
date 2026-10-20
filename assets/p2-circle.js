@@ -133,24 +133,26 @@
     document.getElementById('p2-join-group').onclick = joinGroup;
   }
   function createGroup() {
+    if(GH.state.group)return GH.toast('你已加入健康圈，請先退出再建立');
     GH.sheet('建立健康圈', '<form id="p2-create-form" class="p2-form"><label>健康圈名稱<input name="name" maxlength="20" required placeholder="例如：我們家的健康圈"></label><button class="p2-primary full">建立健康圈</button></form>');
     document.getElementById('p2-create-form').onsubmit = e => {
-      e.preventDefault(); const name = String(new FormData(e.target).get('name')).trim(); if (!name) return;
+      e.preventDefault(); if(GH.state.group)return GH.toast('你已加入健康圈');const name = String(new FormData(e.target).get('name')).trim(); if (!name) return;
       GH.set(s => { s.group = { id: 'circle-' + crypto.randomUUID(), name, code: '00000', members: [{ name: '我', role: '圈主', avatarUrl: 'images/avatars/member-self.webp', status: '健康圈建立者' }] }; s.posts = []; });
       GH.family.period();GH.save();GH.closeSheet(); render(); main().scrollTop = 0; GH.family.careConsent();
     };
   }
   function joinGroup() {
+    if(GH.state.group)return GH.toast('你已加入健康圈，請先退出再加入');
     GH.sheet('加入健康圈', '<form id="p2-join-form" class="p2-form"><label>五位數邀請碼<input name="code" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" required placeholder="請輸入邀請碼"></label><button class="p2-primary full">加入健康圈</button></form>');
     document.getElementById('p2-join-form').onsubmit = e => {
-      e.preventDefault(); const code = String(new FormData(e.target).get('code')).trim();
+      e.preventDefault(); if(GH.state.group)return GH.toast('你已加入健康圈');const code = String(new FormData(e.target).get('code')).trim();
       if (code !== '00000') return GH.toast('邀請碼錯誤，請確認後再試一次');
       if (GH.state.disbandedGroupIds?.includes('circle-family')) return GH.sheet('邀請碼已失效','<p>這個健康圈已解散，請向圈主索取新邀請碼。</p><button class="p2-secondary full" data-close-sheet>我知道了</button>');
       const target=GH.state.circleDirectory?.['circle-family'] || (GH.state.group?.id==='circle-family'?GH.state.group:{id:'circle-family',name:'我們家的健康圈',code:'00000',members:seedMembers.filter(m=>m.name!=='我')});
       const permission=GH.family.joinPermission(target);if(!permission.allowed)return permission.reason==='already'?GH.toast('你已加入這個健康圈'):GH.sheet('健康圈已滿員','<p>這個健康圈已達5人上限，請聯繫圈主。</p><button class="p2-secondary full" data-close-sheet>我知道了</button>');
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       GH.set(s => {
-        s.group = { ...target, code, members: [seedMembers[0],...target.members].map(m=>({...m,joinedAt:dayKey(new Date()),lastLoginAt:dayKey(new Date()),lastGameAt:dayKey(new Date()),careConsent:m.name!=='我',healthRecords:[{type:'steps',value:m.steps||0,date:dayKey(new Date())},{type:'exercise',value:m.exercise||0,date:dayKey(new Date())}]})) };
+        s.group = { ...target, code, members: [{...seedMembers[0],id:s.member.id||'demo-member-self',joinedAt:dayKey(new Date()),lastLoginAt:new Date().toISOString(),careConsent:false},...target.members.map(m=>({...m,joinedAt:m.joinedAt||dayKey(new Date())}))] };
         s.posts = [
           { id: 'sample-1', author: '爸爸', time: '昨天', createdAt: yesterday.toISOString(), text: '傍晚到公園走了走，今天的步數也達標了。', kind: '生活近況', comments: [{ author: '媽媽', text: '下次一起去！' }], likes: 2, place: '信義區' },
           { id: 'sample-2', author: '媽媽', time: '今天', createdAt: new Date().toISOString(), text: '完成今天的運動紀錄，感覺精神不錯。', kind: '健康紀錄', comments: [], likes: 1, metric: '運動 25 分鐘' },
@@ -174,12 +176,19 @@
     document.getElementById('p2-care-settings').onclick=GH.family.careConsent;
     document.getElementById('p2-edit-nickname').onclick = editNickname;
     document.getElementById('p2-leave').textContent=owner?'解散健康圈':'退出健康圈';
-    document.getElementById('p2-leave').onclick = () => GH.sheet(owner?'解散健康圈？':'退出健康圈？', '<p>'+(owner?'你是圈主。解散後，所有成員都將離開健康圈，邀請碼也會失效。已領取的個人健康點與參與紀錄會保留。':'退出後，你將無法查看這個健康圈的近況。已領取的個人健康點與參與紀錄會保留。')+'</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>取消</button><button class="p2-danger" id="p2-confirm-leave">'+(owner?'確認解散':'確認退出')+'</button></div>');
-    document.addEventListener('click', function leave(e) {
-      if (!e.target.closest('#p2-confirm-leave')) return;
-      GH.set(s => { const group=s.group;if(!group)return;s.circleDirectory||={};if(owner){delete s.circleDirectory[group.id];s.disbandedGroupIds||=[];if(!s.disbandedGroupIds.includes(group.id))s.disbandedGroupIds.push(group.id);}else s.circleDirectory[group.id]={...group,members:group.members.filter(m=>m.name!=='我')};s.group=null;s.posts=[]; }); GH.closeSheet(); render(); document.removeEventListener('click', leave);
-    });
+    document.getElementById('p2-leave').onclick = () => {
+      const groupId=GH.state.group?.id;if(!groupId)return;
+      GH.sheet(owner?'解散健康圈？':'退出健康圈？','<p>'+(owner?'你是圈主。解散後，所有成員都將離開健康圈，邀請碼也會失效。已領取的個人健康點與參與紀錄會保留。':'退出後，你不再計入這個圈的任務解鎖人數，也無法查看圈內近況。已領取的健康點與個人參與紀錄會保留。')+'</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>取消</button><button class="p2-danger" id="p2-confirm-leave">'+(owner?'確認解散':'確認退出')+'</button></div>');
+      document.getElementById('p2-confirm-leave').onclick=()=>{
+        const current=GH.state.group,isOwner=current?.members.some(m=>m.name==='我'&&m.role==='圈主');
+        if(current?.id!==groupId||isOwner!==owner)return GH.toast('健康圈權限已變更，請重新查看');
+        GH.family.remember();
+        GH.set(s=>{s.circleDirectory||={};if(owner){delete s.circleDirectory[groupId];s.disbandedGroupIds||=[];if(!s.disbandedGroupIds.includes(groupId))s.disbandedGroupIds.push(groupId);}else s.circleDirectory[groupId]={...current,members:current.members.filter(m=>m.name!=='我')};(s.careEvents||[]).filter(e=>e.groupId===groupId).forEach(e=>e.withdrawn=true);s.notifications.filter(n=>n.groupId===groupId).forEach(n=>n.read=true);s.group=null;s.posts=[];});
+        GH.closeSheet();render();
+      };
+    };
   }
+
   function memberSheet(name) {
     const member = GH.state.group.members.find(m => m.name === name);
     const status=locationStatus(member);
@@ -189,7 +198,7 @@
   }
   function postMarkup(p) {
     const author=GH.state.group?.members.find(m=>m.name===p.author)||{name:p.author};
-    return '<article class="p2-social-post"><div class="p2-post-heading">' + GH.avatar(author,{label:displayName(p.author)}) + '<div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate)+(p.originalTime?' '+esc(p.originalTime):''):'') + '</small></div></div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '" aria-pressed="'+(p.likedByMe?'true':'false')+'"><i class="'+(p.likedByMe?'fa-solid':'fa-regular')+' fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 留言 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + '</article>';
+    return '<article class="p2-social-post"><div class="p2-post-heading">' + GH.avatar(author,{label:displayName(p.author)}) + '<div><strong>' + esc(displayName(p.author)) + '</strong><small>' + esc(p.time) + ' · ' + esc(p.kind)+(p.originalDate?' · 心情日期 '+esc(p.originalDate)+(p.originalTime?' '+esc(p.originalTime):''):'') + '</small></div>'+(GH.ownsContent(p)?'<button type="button" class="p2-icon-btn p2-delete-post" data-delete-post="'+esc(p.id)+'" aria-label="刪除我的貼文"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>':'')+'</div><p class="p2-post-copy">' + esc(p.text) + '</p>' + (p.place ? '<div class="p2-post-tag"><i class="fa-solid fa-location-dot"></i> ' + esc(p.place) + '</div>' : '') + (p.mood ? '<div class="p2-shared-mood">'+GH.art('mood-'+(moodChoices.find(x=>x[0]===p.mood)?.[1] || 'calm'))+'<strong>'+esc(p.mood)+'</strong></div>' : '') + (p.metric ? '<div class="p2-post-tag"><i class="fa-solid fa-heart-pulse"></i> ' + esc(p.metric) + '</div>' : '') + '<div class="p2-post-actions"><button data-like="' + esc(p.id) + '" aria-pressed="'+(p.likedByMe?'true':'false')+'"><i class="'+(p.likedByMe?'fa-solid':'fa-regular')+' fa-heart"></i> 鼓勵 ' + Number(p.likes || 0) + '</button><button data-comment="' + esc(p.id) + '"><i class="fa-regular fa-comment"></i> 留言 ' + (p.comments || []).length + '</button></div>' + (p.url ? '<a class="p2-secondary" style="margin-top:12px" href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + (p.kind === '文章分享' ? '閱讀文章' : '查看地點') + '</a>' : '') + '</article>';
   }
   function renderFeed() {
     const node = document.getElementById('p2-circle-feed'); if (!node) return;
@@ -206,30 +215,49 @@
     if (more) more.onclick = () => { visiblePosts += 10; renderFeed(); };
     node.querySelectorAll('[data-like]').forEach(b => b.onclick = () => { GH.set(s => { const p = s.posts.find(x => x.id === b.dataset.like); if (!p) return; p.likedByMe=!p.likedByMe;p.likes=Math.max(0,Number(p.likes||0)+(p.likedByMe?1:-1)); }); renderFeed(); });
     node.querySelectorAll('[data-comment]').forEach(b => b.onclick = () => comment(b.dataset.comment));
+    node.querySelectorAll('[data-delete-post]').forEach(b=>b.onclick=()=>deletePost(b.dataset.deletePost));
   }
   function compose() {
     GH.sheet('分享近況', '<form id="p2-post-form" class="p2-form"><label>今天想分享什麼？<textarea name="text" maxlength="300" required placeholder="寫下生活中的一件小事"></textarea></label><button class="p2-primary full">分享給健康圈</button></form>');
     document.getElementById('p2-post-form').onsubmit = e => { e.preventDefault(); const text = String(new FormData(e.target).get('text')).trim(); if (!text) return; GH.set(s => s.posts.unshift({ id: String(Date.now()), author: '我', time: '剛剛', createdAt: new Date().toISOString(), text, kind: '生活近況', comments: [], likes: 0 })); GH.closeSheet(); renderFeed(); GH.toast('近況已分享'); };
   }
-  function comment(id) {
+  function deletePost(id){
+    const groupId=GH.state.group?.id,post=GH.state.posts.find(x=>x.id===id);if(!post||!GH.ownsContent(post))return;
+    GH.confirmDelete('刪除這則貼文？','刪除後，這則貼文及所有附屬留言都不再顯示，且無法復原。若由心情日記分享，私人日記仍會保留。',()=>{
+      const current=GH.state.posts.find(x=>x.id===id);
+      if(!groupId||GH.state.group?.id!==groupId||!current||!GH.ownsContent(current))return GH.toast('貼文狀態已變更，請重新查看');
+      GH.set(s=>s.posts=s.posts.filter(x=>x.id!==id));renderFeed();GH.toast('貼文已刪除');
+    });
+  }
+  function comment(id,options={}) {
     const post=GH.state.posts.find(x=>x.id===id),groupId=GH.state.group?.id;if(!post||!groupId)return;
-    let shown=3,sending=false;
+    let shown=options.shown||3,sending=false;
+    (post.comments||[]).forEach(c=>c.id||=crypto.randomUUID());GH.save();
     GH.sheet('留言','<div class="p2-comment-parent"><strong>'+esc(displayName(post.author))+'</strong><p>'+esc(post.text)+'</p></div><p id="p2-comment-total" class="p2-subtle"></p><div id="p2-comment-history"></div><form id="p2-comment-form" class="p2-form"><label>留言<textarea name="text" maxlength="150" required placeholder="寫一句關心，和家人聊聊"></textarea></label><small id="p2-comment-counter" class="p2-comment-counter">0／150 字</small><button id="p2-send-comment" class="p2-primary full" disabled>送出留言</button><p id="p2-comment-status" class="p2-small" role="status"></p></form>');
-    const form=document.getElementById('p2-comment-form'),field=form.querySelector('textarea'),button=document.getElementById('p2-send-comment');
+    const form=document.getElementById('p2-comment-form'),field=form.querySelector('textarea'),button=document.getElementById('p2-send-comment');field.value=options.draft||'';
     const draw=()=>{
       const comments=(post.comments||[]).map((item,index)=>({item,index,time:Date.parse(item.createdAt)||((Date.parse(post.createdAt)||0)+index)})).sort((a,b)=>a.time-b.time||a.index-b.index),visible=comments.slice(-shown);
       document.getElementById('p2-comment-total').textContent='共 '+comments.length+' 則留言'+(comments.length?' · 顯示 '+Math.min(shown,comments.length)+' 則':'');
-      document.getElementById('p2-comment-history').innerHTML=(shown<comments.length?'<button id="p2-earlier-comments" type="button" class="p2-secondary full">查看更早留言</button>':'')+'<div class="p2-comment-thread">'+(visible.length?visible.map(({item:c})=>{const person=GH.state.group?.members.find(m=>m.name===c.author)||{name:c.author};return '<article class="p2-comment-entry">'+GH.avatar(person,{label:displayName(c.author)})+'<div><div class="p2-comment-heading"><strong>'+esc(displayName(c.author))+'</strong><time>'+esc(Number.isFinite(Date.parse(c.createdAt))?new Date(c.createdAt).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'先前留言')+'</time></div><p>'+esc(c.text)+'</p></div></article>';}).join(''):'<p class="p2-comment-empty">還沒有留言，傳一句關心給家人吧。</p>')+'</div>';
+      document.getElementById('p2-comment-history').innerHTML=(shown<comments.length?'<button id="p2-earlier-comments" type="button" class="p2-secondary full">查看更早留言</button>':'')+'<div class="p2-comment-thread">'+(visible.length?visible.map(({item:c})=>{const person=GH.state.group?.members.find(m=>m.name===c.author)||{name:c.author};return '<article class="p2-comment-entry">'+GH.avatar(person,{label:displayName(c.author)})+'<div><div class="p2-comment-heading"><strong>'+esc(displayName(c.author))+'</strong><time>'+esc(Number.isFinite(Date.parse(c.createdAt))?new Date(c.createdAt).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'先前留言')+'</time></div><p>'+esc(c.text)+'</p>'+(GH.ownsContent(c)?'<button type="button" class="p2-delete-link" data-delete-comment="'+esc(c.id)+'">刪除我的留言</button>':'')+'</div></article>';}).join(''):'<p class="p2-comment-empty">還沒有留言，傳一句關心給家人吧。</p>')+'</div>';
       document.getElementById('p2-earlier-comments')?.addEventListener('click',()=>{shown+=10;draw();});
+      document.querySelectorAll('[data-delete-comment]').forEach(control=>control.onclick=()=>{
+        const target=post.comments.find(c=>c.id===control.dataset.deleteComment);if(!target||!GH.ownsContent(target))return;
+        const restore=()=>comment(id,{shown,draft:field.value});
+        GH.confirmDelete('刪除這則留言？','刪除後無法復原，其他人的留言不受影響。',()=>{
+          const current=GH.state.posts.find(x=>x.id===id),entry=current?.comments?.find(c=>c.id===target.id);
+          if(GH.state.group?.id!==groupId||!entry||!GH.ownsContent(entry))return GH.toast('留言狀態已變更，請重新查看');
+          GH.set(()=>current.comments=current.comments.filter(c=>c.id!==entry.id));renderFeed();restore();GH.toast('留言已刪除');
+        },restore);
+      });
     };
     const update=()=>{document.getElementById('p2-comment-counter').textContent=field.value.length+'／150 字';button.disabled=sending||!field.value.trim()||field.value.length>150;};
-    draw();quickCare(form);field.addEventListener('input',update);
+    draw();quickCare(form);field.addEventListener('input',update);update();
     form.onsubmit=e=>{
       e.preventDefault();if(sending)return;
       const text=field.value.trim();if(!text||text.length>150)return;
       if(GH.state.group?.id!==groupId||!GH.state.posts.some(x=>x.id===id))return GH.toast('健康圈或貼文已變更，請重新開啟');
       sending=true;update();
-      GH.set(s=>{const current=s.posts.find(x=>x.id===id);current.comments||=[];current.comments.push({id:crypto.randomUUID(),author:'我',text,createdAt:new Date().toISOString()});});
+      GH.set(s=>{const current=s.posts.find(x=>x.id===id);current.comments||=[];current.comments.push({id:crypto.randomUUID(),author:'我',authorId:s.member.id||'demo-member-self',text,createdAt:new Date().toISOString()});});
       form.reset();sending=false;draw();update();renderFeed();document.getElementById('p2-comment-status').textContent='留言已送出';
     };
   }
