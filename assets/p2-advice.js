@@ -46,11 +46,11 @@
    if(type==='weight'){const first=Number(rows[0].value),last=Number(rows.at(-1).value),delta=round(last-first);item.lastWeight=last;item.weightDelta=delta;item.rule=delta===0?'weight_same':'weight_change';item.summary='最近一次 '+last+' 公斤；較期間最早一筆'+(delta===0?'相同':delta>0?'增加 '+delta+' 公斤':'減少 '+Math.abs(delta)+' 公斤');}
    if(['steps_low','sleep_low','exercise_low','heart_high','heart_low'].includes(item.rule))item.state='triggered';return item;
   });
-  const hash=Array.from(end).reduce((a,c)=>a+c.charCodeAt(0),0),candidates=items.filter(i=>i.rule),priority=candidates.filter(i=>/^heart_(high|low)$/.test(i.rule));
-  const matching=candidates.filter(i=>i.state==='triggered'),pool=priority.length?priority:matching.length?matching:candidates;
-  const selected=pool.length?pool[hash%pool.length]:null;
+  const hash=Array.from(end).reduce((a,c)=>a+c.charCodeAt(0),0);
+  const ordered=items.filter(i=>i.rule).sort((a,b)=>Number(b.state==='triggered')-Number(a.state==='triggered')||types.indexOf(a.type)-types.indexOf(b.type));
+  const selected=ordered[0]||null;
   items.forEach(i=>{if(i.rule)i.message=copy[i.rule][hash%copy[i.rule].length];});
-  return {start,end,items,selected,consent,partial:consent&&s.healthPreferences.length<5,generic:copy.generic[hash%copy.generic.length]};
+  return {start,end,items,ordered,selected,consent,partial:consent&&s.healthPreferences.length<5,generic:copy.generic[hash%copy.generic.length]};
  }
  function preview(s,key){
   s.records=[];s.healthPreferences=[];s.device='disconnected';s.healthUpdatedAt=null;s.healthSync=null;s.demoAdvice=true;

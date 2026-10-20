@@ -57,5 +57,9 @@
     morning: ['早安', '今天也要元氣滿滿 ☀️'], day: ['午安', '吃飽喝足，來動動身體吧 ☕'],
     evening: ['晚安', '今天過得好嗎？放鬆一下 🌙'], sleep: ['夜深了', '注意保暖，早點休息喔 🦉']
   };
-  window.GH_VISUALS = { context, homeCopy(period) { return homeCopy[period] || homeCopy.morning; }, taipeiHour: hour };
+  const homeLines = {
+    morning: ['今天也要', '元氣滿滿 ☀️'], day: ['吃飽喝足，', '來動動身體吧 ☕'],
+    evening: ['今天過得好嗎？', '放鬆一下 🌙'], sleep: ['注意保暖，', '早點休息喔 🦉']
+  };
+  window.GH_VISUALS = { context, homeCopy(period) { return homeCopy[period] || homeCopy.morning; }, homeLines(period) { return homeLines[period] || homeLines.morning; }, taipeiHour: hour };
 })();

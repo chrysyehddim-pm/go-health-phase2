@@ -58,6 +58,16 @@
   if(['task-next','task-joined'].includes(id)){p.members=p.members.filter(n=>n!=='我');g.members[0].joinedAt=day(0);s.records[0].date=p.start;}
   if(id==='task-game'){s.device='disconnected';s.records=[];s.healthPreferences=[];g.members.slice(1).forEach(m=>m.gameHistory=[{date:day(0),completed:true},{date:day(-1),completed:true}]);}
  }
+ if(param.get('taskCase')==='all-claimed'&&id==='task-claimed'){
+  const g=s.group,p=s.taskPeriods[g.id],selfId=s.member.id||'demo-member-self',now=new Date().toISOString();
+  p.rulesVersion=2;p.completionDates={};s.taskClaims=[];s.pointAwards=[];s.taskClaimLedger={};s.taskAchievements={};
+  GH_DEMO.tasks.forEach(t=>{
+   p.completed[t.id]=['我','爸爸'];p.unlocked[t.id]=true;p.completionDates[t.id]={'我':p.start,'爸爸':p.start};
+   ['我','爸爸'].forEach(name=>{const memberId=name==='我'?selfId:'demo-member-爸爸';s.taskAchievements[memberId+':'+p.start+':'+t.id]={memberId,periodStart:p.start,taskId:t.id,achievedAt:p.start};});
+   const key=selfId+':'+p.start+':'+t.id;s.taskClaims.push(p.id+':'+t.id);s.taskClaimLedger[key]={memberId:selfId,taskId:t.id,periodStart:p.start,groupId:g.id,createdAt:now};
+   s.pointAwards.push({id:key,title:t.title,points:t.points,date:day(0)});
+  });
+ }
  if(param.get('taskCase')==='switched'&&id==='task-claimed'){
   const old=s.group,range=GH.family.weekRange();s.group={...old,id:'circle-friends',name:'親友健康圈',members:old.members.map(m=>({...m}))};
   const oldKey='demo-member-self:'+range.start+':group_steps';s.taskClaimLedger={[oldKey]:{memberId:'demo-member-self',taskId:'group_steps',periodStart:range.start,groupId:old.id,createdAt:new Date().toISOString()}};

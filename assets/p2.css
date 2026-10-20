@@ -307,13 +307,20 @@ body { background:#edece6; color:#243e37; }
 .p2-scene-collapsed .p2-scene { height:calc(20svh + 42px); min-height:170px; }
 .p2-scene-app .p2-main { position:relative; z-index:2; flex:1; min-height:0; width:100%; max-width:480px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; background:#fffefa; border-radius:38px 38px 0 0; margin:-42px 0 0; padding:24px 20px 115px; box-shadow:0 -5px 18px #3c55461c; }
 .p2-main::-webkit-scrollbar { display:none; }
-.p2-scene .p2-home-top { position:absolute; left:20px; right:20px; top:72px; margin:0; display:flex; align-items:flex-start; gap:12px; }
+.p2-scene .p2-home-top { position:absolute; left:20px; right:20px; top:76px; margin:0; display:block; }
+.p2-scene .p2-home-top > div { width:52%; max-width:176px; }
 .p2-scene .p2-home-top .p2-eyebrow,.p2-scene .p2-home-top .p2-lead { display:none; }
-.p2-scene .p2-home-top .p2-page-title { max-width:240px; font-size:26px; line-height:1.4; text-shadow:0 1px 5px #fff; }
+.p2-scene .p2-home-top .p2-page-title { max-width:100%; font-size:26px; line-height:1.35; text-shadow:0 1px 5px #fff; }
 .p2-scene[data-scene="home"][data-period="evening"] .p2-page-title,
 .p2-scene[data-scene="home"][data-period="sleep"] .p2-page-title { color:#fff; text-shadow:0 2px 8px #10283ccc; }
-.p2-greeting-detail { display:block; font-size:24px; }
-.p2-scene .p2-bell { width:46px; height:46px; flex:0 0 46px; border-radius:50%; background:#fffdf8; }
+.p2-greeting-detail { display:block; margin-top:8px; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:0; }
+.p2-greeting-line { display:block; white-space:nowrap; }
+.p2-scene .p2-bell { position:absolute; right:0; top:0; width:46px; height:46px; border-radius:50%; background:#fffdf8; }
+body[data-page="home"] .p2-scene-app .p2-scene { height:calc(max(20svh, 128px) + max(13svh, 82px) + 42px); }
+body[data-page="home"] .p2-scene-app .p2-main { margin-top:max(20svh, 128px); }
+body[data-page="home"] .p2-scene-spacer { height:max(13svh, 82px); }
+body[data-page="home"] .p2-sheet-frame { top:calc(max(20svh, 128px) + max(13svh, 82px)); }
+@media(max-width:360px) { .p2-scene .p2-home-top { left:16px; right:16px; top:72px; }.p2-scene .p2-home-top .p2-page-title { font-size:24px; }.p2-greeting-detail { font-size:18px; } }
 .p2-large .p2-page-title { font-size:28px; }
 .p2-large .p2-section-head h2 { font-size:24px; }
 .p2-large .p2-lead,.p2-large .p2-card p,.p2-large .p2-task-card p,.p2-large .p2-home-link small,.p2-large .p2-section-intro { font-size:17px; line-height:1.65; }

@@ -26,7 +26,7 @@
     if(review&&['none','partial','empty','short','triggered','maintain','error'].includes(review))GH.set(s=>GH_ADVICE.preview(s,review));
     const paint=()=>{
       const result=GH_ADVICE.compute(GH.state),sync=GH.state.healthSync;
-      const ready=result.items.filter(i=>i.rule),ordered=result.selected?[result.selected,...ready.filter(i=>i!==result.selected)]:[];
+      const ordered=result.ordered;
       const slides=ordered.map(item=>adviceCard(item,result)).join('');
       main().innerHTML='<section><a class="p2-back-button" href="index.html">返回首頁</a><p class="p2-eyebrow" style="margin-top:18px">我的健康建議</p><h1 class="p2-page-title">給自己，一點生活上的照顧</h1><p class="p2-lead">'+(result.consent?'從最近的健康紀錄，找一件今天可以做的小事。':'照自己的步調，慢慢累積健康的日常。')+'</p></section>'+
        (review?'<details class="p2-card p2-advice-review"><summary>導覽專用：切換示範狀態</summary><label for="p2-advice-case">健康建議情境</label><select id="p2-advice-case">'+[['none','未授權'],['partial','部分授權'],['empty','授權但無資料'],['short','未滿三天'],['triggered','五項健康建議'],['maintain','維持習慣'],['error','更新失敗']].map(([key,name])=>'<option value="'+key+'" '+(key===review?'selected':'')+'>'+name+'</option>').join('')+'</select><small>此切換僅供團隊導覽示範。</small></details>':'')+
