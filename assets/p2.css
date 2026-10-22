@@ -311,30 +311,21 @@ body { background:#edece6; color:#243e37; }
 .p2-scene .p2-home-top > div { width:52%; max-width:176px; }
 .p2-scene .p2-home-top .p2-eyebrow,.p2-scene .p2-home-top .p2-lead { display:none; }
 .p2-scene .p2-home-top .p2-page-title { max-width:100%; font-size:26px; line-height:1.35; text-shadow:0 1px 5px #fff; }
-.p2-scene[data-scene="home"][data-period="evening"] .p2-page-title,
-.p2-scene[data-scene="home"][data-period="sleep"] .p2-page-title { color:#fff; text-shadow:0 2px 8px #10283ccc; }
 .p2-greeting-detail { display:block; margin-top:8px; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:0; }
 .p2-greeting-line { display:block; white-space:nowrap; }
-/* Keep greeting contrast independent of the details in each time-of-day illustration. */
-.p2-scene[data-scene="home"] .p2-home-top > div {
-  position:relative; isolation:isolate; width:54%; max-width:176px; padding:8px 0 10px;
+/* Shared home treatment: a light white edge fade, without a text-sized backdrop. */
+.p2-scene[data-scene="home"]::after {
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.85) 12%,rgba(255,255,255,.70) 26%,rgba(255,255,255,.48) 38%,rgba(255,255,255,.18) 50%,rgba(255,255,255,0) 60%);
 }
-.p2-scene[data-scene="home"] .p2-home-top > div::before {
-  content:""; position:absolute; z-index:-1; inset:-10px -32px -12px -20px; pointer-events:none;
-  background:linear-gradient(90deg,rgba(255,253,246,.98) 0%,rgba(255,253,246,.96) 68%,rgba(255,253,246,.82) 82%,rgba(255,253,246,0) 100%);
-  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 14px,#000 calc(100% - 14px),transparent);
-  mask-image:linear-gradient(to bottom,transparent,#000 14px,#000 calc(100% - 14px),transparent);
+.p2-scene[data-scene="home"] .p2-home-top { z-index:2; }
+.p2-scene[data-scene="home"] .p2-home-top > div {
+  position:relative; width:54%; max-width:176px; padding:8px 0 10px;
 }
 .p2-scene[data-scene="home"] .p2-home-top .p2-page-title {
   color:#153e31; text-shadow:none; line-height:1.35;
 }
 .p2-scene[data-scene="home"] .p2-greeting-detail { line-height:1.5; }
-.p2-scene[data-scene="home"][data-period="evening"] .p2-home-top > div::before,
-.p2-scene[data-scene="home"][data-period="sleep"] .p2-home-top > div::before {
-  background:linear-gradient(90deg,rgba(8,28,27,.98) 0%,rgba(8,28,27,.96) 68%,rgba(8,28,27,.82) 82%,rgba(8,28,27,0) 100%);
-}
-.p2-scene[data-scene="home"][data-period="evening"] .p2-home-top .p2-page-title,
-.p2-scene[data-scene="home"][data-period="sleep"] .p2-home-top .p2-page-title { color:#fffdf6; text-shadow:none; }
 .p2-scene .p2-bell { position:absolute; right:0; top:0; width:46px; height:46px; border-radius:50%; background:#fffdf8; }
 body[data-page="home"] .p2-scene-app .p2-scene { height:calc(max(20svh, 128px) + max(13svh, 82px) + 42px); }
 body[data-page="home"] .p2-scene-app .p2-main { margin-top:max(20svh, 128px); }
