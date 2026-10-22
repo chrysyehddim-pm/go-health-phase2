@@ -12,6 +12,7 @@ function app(instant,storage=new Map(),search='?journey=xiaohua'){
 for(const instant of ['2026-10-22T02:00:00+08:00','2026-10-26T00:03:00+08:00','2026-11-01T23:59:00+08:00']){
   const store=new Map(),c=app(instant,store),{GH,GH_DEMO}=c,s=GH.state,today=new Date(instant).toLocaleDateString('sv-SE',{timeZone:'Asia/Taipei'});
   assert.equal(s.group.members.length,5);assert.equal(s.group.members[0].role,'圈主');assert.equal(new Set(s.group.members.map(m=>m.id)).size,5);
+  assert.equal(s.group.members.find(m=>m.name==='老公').relationship,'配偶');assert(!s.group.members.some(m=>m.name==='姊姊'));
   assert(s.records.every(r=>r.date<=today));assert(s.moods.every(r=>Date.parse(r.createdAt)<=Date.parse(instant)));
   const result=c.GH_ADVICE.compute(s,new Date(instant));assert.equal(result.ordered.length,5);assert(result.items.every(x=>x.days>=3));
   const walk=GH_DEMO.tasks.find(x=>x.id==='group_steps');assert.equal(GH.family.taskStatus(walk).canClaim,true);assert.equal(GH.family.taskStatus(walk).count,2);
@@ -24,4 +25,15 @@ for(const instant of ['2026-10-22T02:00:00+08:00','2026-10-26T00:03:00+08:00','2
   const other=app(instant,store,'?scenario=S02');assert.equal(other.GH.state.journey,undefined);assert.equal(other.GH.state.group,null);
 }
 const normal=app('2026-10-22T09:00:00+08:00',new Map(),'');assert.equal(normal.GH.state.journey,undefined);assert.equal(normal.GH.state.group,null);
+const oldStore=new Map(),before=app('2026-10-22T09:00:00+08:00',oldStore);
+before.GH.family.claim(before.GH_DEMO.tasks[0]);
+const old=JSON.parse(oldStore.get(before.GH.KEY)),partner=old.group.members.find(m=>m.name==='老公');
+partner.name='姊姊';partner.age=48;partner.relationship='姊妹';partner.avatarUrl='images/avatars/member-aunt.webp';
+old.posts.find(p=>p.id==='journey-post-place').author='姊姊';
+old.posts.unshift({id:'retained-user-post',author:'我',text:'保留這則分享'});
+oldStore.set(before.GH.KEY,JSON.stringify(old));
+const migrated=app('2026-10-22T09:00:00+08:00',oldStore);
+assert.equal(migrated.GH.pointBalance(),1500);assert.equal(migrated.GH.state.posts[0].id,'retained-user-post');
+assert.equal(migrated.GH.state.posts.find(p=>p.id==='journey-post-place').author,'老公');
+assert.equal(migrated.GH.state.group.members.find(m=>m.name==='老公').age,47);
 console.log('PASS: five-member seed, seven-day advice, no future dates, Monday/month rollover, claim deduplication, navigation persistence, exchange balance, restart and standalone scenario isolation.');

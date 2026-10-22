@@ -28,11 +28,11 @@
     s.healthSchema='happygo-health-v2';s.healthPreferences=['steps','sleep','exercise','heart','weight'];s.healthConsent=true;s.device='connected';s.records=healthRecords(s.healthPreferences,now);s.healthSync='ready';s.healthUpdatedAt=iso;
     s.location={permission:'prompt',sharing:false};
     const member=(name,age,asset,relationship)=>({id:name==='我'?'journey-xiaohua':'journey-'+name,name,age,avatarUrl:'images/avatars/member-'+asset+'.webp',role:name==='我'?'圈主':'成員',relationship,joinedAt:shift(today,-60),lastLoginAt:iso,lastGameAt:iso,careConsent:true,locationSharing:false,healthRecords:[],gameHistory:[],moods:[]});
-    s.group={id:'journey-family',name:'小花家的健康圈',code:'00000',nickname:'小花',members:[member('我',45,'self',''),member('爸爸',72,'father','父親'),member('媽媽',69,'mother','母親'),member('姊姊',48,'aunt','姊妹'),member('女兒',20,'sister','女兒')]};
-    const father=s.group.members[1],mother=s.group.members[2],sister=s.group.members[3],daughter=s.group.members[4];
+    s.group={id:'journey-family',name:'小花家的健康圈',code:'00000',nickname:'小花',members:[member('我',45,'self',''),member('爸爸',72,'father','父親'),member('媽媽',69,'mother','母親'),member('老公',47,'husband','配偶'),member('女兒',20,'sister','女兒')]};
+    const father=s.group.members[1],mother=s.group.members[2],husband=s.group.members[3],daughter=s.group.members[4];
     father.healthRecords=[{type:'steps',value:7200,date:today,source,validDay:true,fullDay:false}];
     father.locationSharing=true;father.lastLocation={lat:25.0142,lng:121.4638,area:'新北市板橋區',place:'板橋車站附近（展示位置）',updatedAt:past(0.3)};
-    sister.locationSharing=true;sister.lastLocation={lat:25.0142,lng:121.4638,area:'新北市板橋區',place:'板橋車站附近（展示位置）',updatedAt:past(48)};
+    husband.locationSharing=true;husband.lastLocation={lat:25.0142,lng:121.4638,area:'新北市板橋區',place:'板橋車站附近（展示位置）',updatedAt:past(48)};
     s.demoFamilyLocation=true;
     // A gentle, weekly care example based on last week's complete sleep records.
     const range=GH.family.weekRange(today),previousMonday=shift(range.start,-7);
@@ -50,7 +50,7 @@
     s.posts=[
       post('walk','爸爸',1,'健康紀錄','今天走了 7,200 步！走得舒服最重要，小花有空也一起走走。',{metric:'步數 7,200 步',comments:[{id:'journey-comment-1',author:'媽媽',text:'慢慢走，也記得喝水喔。',createdAt:past(0.8)}],likes:3}),
       post('mood','女兒',3,'心情分享','今天完成了作業，想跟大家分享這份小小的開心。',{mood:'開心',likes:2}),
-      post('place','姊姊',22,'地點分享','週末想和大家到附近走走，板橋車站集合很方便。',{place:'板橋車站',url:'https://www.google.com/maps/search/?api=1&query=25.0142,121.4638',likes:2}),
+      post('place','老公',22,'地點分享','週末想和大家到附近走走，板橋車站集合很方便。',{place:'板橋車站',url:'https://www.google.com/maps/search/?api=1&query=25.0142,121.4638',likes:2}),
       post('rest','媽媽',28,'生活近況','最近睡得比較少，今晚準備早點休息。謝謝大家的關心。',{comments:[{id:'journey-comment-2',author:'我',text:'辛苦了，週末我帶晚餐回去，一起慢慢吃。',createdAt:past(26)}]}),
       post('article','我',40,'文章分享','想和大家一起認識大腦健康，日常多一點陪伴和活動。',{url:'https://www.femh.org.tw/magazine/viewmag.aspx?ID=11889',likes:3}),
       post('life','爸爸',52,'生活近況','公園的樹蔭很舒服，和朋友邊走邊聊天，心情也變好了。'),
@@ -61,6 +61,25 @@
     Object.keys(GH.state).forEach(k=>delete GH.state[k]);Object.assign(GH.state,s);
     ['gohealth_p2_exchanges','gohealth_latest_exchange'].forEach(k=>sessionStorage.removeItem(k));
     GH.family.remember();GH.family.evaluateCare();GH.save();
+  }
+  // Update the earlier family casting while retaining this tab's posts and rewards.
+  if(GH.state.journey?.id==='xiaohua' && GH.state.group?.members.some(m=>m.name==='姊姊')){
+    const rename=value=>value==='姊姊'?'老公':value;
+    const visit=value=>{
+      if(!value||typeof value!=='object')return;
+      Object.keys(value).forEach(key=>{
+        if(['name','author','subject','recipient'].includes(key))value[key]=rename(value[key]);
+        if(Array.isArray(value[key])&&['members','recipients'].includes(key))value[key]=value[key].map(rename);
+        if(key==='completed'&&value[key])Object.keys(value[key]).forEach(task=>{if(Array.isArray(value[key][task]))value[key][task]=value[key][task].map(rename);});
+        if(key==='姊姊'){value['老公']=value[key];delete value[key];}
+        visit(value[key]);
+      });
+    };
+    visit(GH.state);
+    const husband=GH.state.group.members.find(m=>m.name==='老公');
+    husband.avatarUrl='images/avatars/member-husband.webp';husband.age=47;husband.relationship='配偶';
+    GH.state.notifications.forEach(n=>['title','detail'].forEach(key=>{if(typeof n[key]==='string')n[key]=n[key].replaceAll('姊姊','老公');}));
+    GH.save();
   }
   if(params.get('journey')==='xiaohua' && (GH.state.journey?.version!==VERSION || params.get('restart')==='1')) {
     seed();params.delete('restart');history.replaceState(null,'',location.pathname+'?'+params+location.hash);
@@ -97,7 +116,7 @@
   const page=location.pathname.split('/').pop();
   const index=page==='ai.html'?1:['health.html','records.html'].includes(page)?2:page==='group.html'?(params.get('view')==='location'?5:3):page==='activities.html'?4:page==='explore.html'?(params.has('family')?5:6):['exchange.html','points-history.html','exchange-history.html'].includes(page)?7:0;
   function guide(){
-    GH.sheet('吳小花的健康生活旅程','<p>45 歲的吳小花，和爸爸、媽媽、姊姊、女兒在同一個健康圈。從照顧自己，走向陪伴家人，再一起探索戶外。</p><ol class="journey-chapters">'+steps.map((step,i)=>'<li'+(i===index?' class="is-current"':'')+'><a href="'+step[1]+'"><small>'+step[2]+'</small><strong>'+step[0]+'</strong><span>'+step[3]+'</span></a></li>').join('')+'</ol><p class="p2-small">這是獨立展示情境。人物、健康、心情與家人位置均為示意資料；附近地點使用 Google 即時搜尋，需網路連線。切換頁面與重新整理會保留本次操作。</p><a class="p2-secondary full" href="journey.html">返回旅程介紹</a><button type="button" id="journey-restart" class="p2-quiet full">重新開始展示</button>');
+    GH.sheet('吳小花的健康生活旅程','<p>45 歲的吳小花，和老公、爸爸、媽媽、女兒在同一個健康圈。從照顧自己，走向陪伴家人，再一起探索戶外。</p><ol class="journey-chapters">'+steps.map((step,i)=>'<li'+(i===index?' class="is-current"':'')+'><a href="'+step[1]+'"><small>'+step[2]+'</small><strong>'+step[0]+'</strong><span>'+step[3]+'</span></a></li>').join('')+'</ol><p class="p2-small">這是獨立展示情境。人物、健康、心情與家人位置均為示意資料；附近地點使用 Google 即時搜尋，需網路連線。切換頁面與重新整理會保留本次操作。</p><a class="p2-secondary full" href="journey.html">返回旅程介紹</a><button type="button" id="journey-restart" class="p2-quiet full">重新開始展示</button>');
     document.getElementById('journey-restart').onclick=()=>{
       GH.sheet('重新開始展示？','<p>將回到吳小花最初的展示資料，清除本次新增、刪除、分享與領獎結果。</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>取消</button><a class="p2-primary" href="index.html?journey=xiaohua&restart=1">確認重新開始</a></div>');
     };
