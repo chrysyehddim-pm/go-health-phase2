@@ -117,7 +117,7 @@
     if(key!==centerKey){clearEntries();centerKey=key;}
     category=nextCategory||category||'公園步道';
     $('p2-place-location-label').textContent=next.label;
-    $('p2-place-location-detail').textContent=next.mode==='region'?'以行政區代表位置搜尋，並非你的實際位置。':next.mode==='family'?'以家人最後分享位置搜尋。':'距離為約略直線距離，實際路線請查看 Google 地圖。';
+    $('p2-place-location-detail').textContent=next.mode==='region'?'以行政區代表位置搜尋，並非你的實際位置。':next.mode==='family'?'以家人最後分享位置搜尋。':next.mode==='journey'?'以板橋車站周邊作為展示起點，未使用你的實際位置；也能改選地區。':'距離為約略直線距離，實際路線請查看 Google 地圖。';
     drawCategories();showNote();updateTools();
     const requestedKey=centerKey;
     await ensureMap();
@@ -192,6 +192,9 @@
     if(!familyName){$('p2-city-location').onclick=openAreaPicker;$('p2-my-location').onclick=locate;}
     drawCategories();showNote();
     if(familyName){if(!context.available){invalidate(context);return;}setCenter({...context.center,label:familyName+'的最後位置 · '+context.area,mode:'family',capturedAt:context.member.lastLocation.updatedAt},'健康飲食');}
+    else if(GH.state.journey?.id==='xiaohua'&&!scenario&&!demo){
+      setCenter({lat:25.0142,lng:121.4638,label:'板橋車站附近（展示起點）',mode:'journey'},'公園步道');
+    }
     else if(demo||scenario){
       const state=params.get('placeState');
       if(state==='location-denied'){$('p2-location-notice').hidden=false;$('p2-location-notice').textContent='尚未取得位置權限，可改用選擇地區。';}

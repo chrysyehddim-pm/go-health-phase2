@@ -4,7 +4,7 @@
   const validityDays = config.limitedPointValidityDays || 90;
   let balance = config.healthPointBalance || 1200;
   try {
-    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v1') || '{}');
+    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3') || '{}');
     balance += (state.pointAwards || []).reduce((sum, item) => sum + Number(item.points || 0), 0);
     const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
     const latest = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null');

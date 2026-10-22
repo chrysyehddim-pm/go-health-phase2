@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4f8f3">
+  <title>走進吳小花的健康生活｜GO HEALTH</title>
+  <meta name="description" content="從自己的房間、家人的客廳，到戶外健康街區，一起體驗 GO HEALTH 的陪伴旅程。">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f8f3;color:#24493c;font:17px/1.8 system-ui,-apple-system,"Microsoft JhengHei",sans-serif}main{max-width:760px;margin:auto;padding:28px 22px 48px}header img{width:180px;height:auto}a{color:#137653}h1{font-size:clamp(28px,6vw,42px);line-height:1.45;margin:22px 0 12px}h2{font-size:22px;line-height:1.5}p{margin:10px 0}.eyebrow{font-size:14px;letter-spacing:.1em;color:#527267;margin-top:28px}.lead{font-size:19px}.profile{display:flex;align-items:center;gap:16px;margin:24px 0}.profile img{width:72px;height:72px;border-radius:50%;background:#fff}.profile strong,.profile span{display:block}.profile span{font-size:15px;color:#627a70}.card{background:#fff;border:1px solid #d6e4dc;padding:24px;border-radius:24px;margin:22px 0;box-shadow:0 8px 32px #315d4010}.start{display:block;text-align:center;background:#14865b;color:#fff;padding:15px 18px;border-radius:16px;font-size:20px;font-weight:700;text-decoration:none}.start:focus-visible,a:focus-visible{outline:3px solid #087591;outline-offset:4px}.chapters{list-style:none;padding:0;margin:0}.chapters li{padding:14px 0;border-bottom:1px solid #e8eee9}.chapters li:last-child{border:0}.chapters strong{display:block;font-size:19px}.chapters span{display:block;color:#566d63;font-size:16px}.note{font-size:14px;color:#61736b}.links{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-top:24px}.links a{min-height:44px;padding:6px 0}@media(max-width:360px){main{padding:22px 16px}.card{padding:20px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header><img src="images/logo.png" alt="GO HEALTH"></header>
+    <p class="eyebrow">完整會員旅程體驗</p>
+    <h1>一起陪伴，<br>把健康過成日常</h1>
+    <p class="lead">從自己的房間、家人的客廳，到戶外健康街區，走進吳小花的健康生活。</p>
+    <div class="profile"><img src="images/avatars/member-self.webp" alt="吳小花的插畫頭像"><div><strong>吳小花 · 45 歲</strong><span>和爸爸、媽媽、姊姊、女兒，組成五人的健康圈。</span></div></div>
+    <a class="start" id="journey-start" href="index.html?journey=xiaohua">以吳小花的身分開始體驗 →</a>
+    <section class="card"><h2>這趟旅程，可以體驗什麼？</h2>
+      <ol class="chapters">
+        <li><strong>01　我的房間：先照顧好自己</strong><span>從首頁掌握今天的重點，看看健康建議、健康指標、動腦成果與心情樹。分享由自己決定。</span></li>
+        <li><strong>02　家人的客廳：讓關心自然發生</strong><span>看看家人的日常、留言和鼓勵；收到關心提示時，傳一句貼心的問候。</span></li>
+        <li><strong>03　一起做任務：為小習慣加點動力</strong><span>小花和爸爸都完成了步行目標，可以主動領取獎勵；其他任務也能慢慢累積。</span></li>
+        <li><strong>04　健康街區：讓陪伴走進生活</strong><span>看看爸爸同意分享的最後位置，找附近去處並推薦給家人；從板橋車站出發，探索健康文章與服務。</span></li>
+        <li><strong>05　健康點回饋：讓努力看得見</strong><span>回首頁查看任務得到的健康點，體驗兌換 HAPPY GO 點數。</span></li>
+      </ol>
+    </section>
+    <p class="note">體驗提示：各頁上方有「旅程導覽」，可查看建議順序與體驗重點，也可以自由使用下方選單。切換頁面或重新整理會保留本次操作；不同手機的展示資料各自獨立。</p>
+    <p class="note">人物、健康資料、家人位置與點數操作皆為展示內容，不會異動真實會員資料。附近地點使用 Google 即時搜尋，需要網路連線；未取得定位權限，也能從板橋車站周邊開始。</p>
+    <div class="links"><a href="demo.html">查看各項情境</a><a id="journey-reset" href="index.html?journey=xiaohua&amp;restart=1">重新開始這趟旅程</a></div>
+  </main>
+  <script>
+    try{const s=JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3')||'{}');if(s.journey?.id==='xiaohua')document.getElementById('journey-start').textContent='繼續吳小花的健康生活 →';}catch(_){}
+    document.getElementById('journey-reset').addEventListener('click',event=>{if(!confirm('將清除這次展示的新增、分享與領獎結果，重新開始。確定繼續嗎？'))event.preventDefault();});
+  </script>
+</body>
+</html>

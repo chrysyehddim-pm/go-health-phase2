@@ -213,6 +213,7 @@
   // Permission requests remain in the host App; this page never calls HealthKit directly.
   // Fixed local demonstration values; native bridge responses always take precedence.
   function demoHealthRecords(requested) {
+    if(state.journey?.id === 'xiaohua' && window.GH_JOURNEY) return window.GH_JOURNEY.healthRecords(requested);
     const series={steps:[6200,7100,6800,8200,7600,6500,7840],sleep:[7.2,6.8,7.5,7.1,6.9,7.6,7.3],heart:[72,70,74,71,69,73,72],exercise:[20,15,30,25,18,35,22]};
     const records=[];
     requested.forEach(type=>{
@@ -229,7 +230,8 @@
     set(s => { s.healthSync = 'syncing'; });
     try {
       let payload;
-      if (window.HappyGoHealthBridge?.readHealthData) payload = await window.HappyGoHealthBridge.readHealthData({types:requested});
+      if (state.journey?.id==='xiaohua' && window.GH_JOURNEY) payload = await new Promise(resolve => setTimeout(() => resolve({records:window.GH_JOURNEY.healthRecords(requested)}),650));
+      else if (window.HappyGoHealthBridge?.readHealthData) payload = await window.HappyGoHealthBridge.readHealthData({types:requested});
       else if (window.HappyGoHealthBridge?.readSteps && requested.includes('steps')) payload = await window.HappyGoHealthBridge.readSteps();
       else if (window.HappyGoHealthBridge) throw Error('Unsupported bridge');
       else payload = await new Promise(resolve => setTimeout(() => resolve({records:demoHealthRecords(requested)}),650));

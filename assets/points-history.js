@@ -11,13 +11,13 @@
   const records = [...(data.pointHistory || [])];
   let currentBalance = exchange.healthPointBalance || 1200;
   try {
-    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v1') || '{}');
+    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3') || '{}');
     const awards = state.pointAwards || [];
     awards.forEach(item => records.push({ id: 'award-' + item.id, type: 'earn', title: item.title, occurredAt: item.date + ' 12:00', points: item.points, balanceAfter: null }));
     currentBalance += awards.reduce((sum, item) => sum + Number(item.points || 0), 0);
     const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
     exchanges.filter(item => item.status === 'success').forEach(item => records.push({ ...item, type: 'use', title: '兌換 HAPPY GO 點數', occurredAt: item.requestedAt, points: -item.healthPointsUsed }));
-    if (exchanges.length) currentBalance -= exchanges.reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
+    if (exchanges.length) currentBalance -= exchanges.filter(item => item.status === 'success').reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
     else { const last = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null'); if (last?.status === 'success') currentBalance -= Number(last.healthPointsUsed || 0); }
   } catch (_) {}
   (data.exchangeHistory || []).filter(record => record.status === 'success').forEach(record => records.push({

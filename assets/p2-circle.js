@@ -46,7 +46,7 @@
     GH.set(s=>{
       s.location={permission:'granted',sharing:true,updatedAt:now,source:'HAPPY GO App'};
       const own=s.group?.members.find(m=>m.name==='我');
-      if(own){own.locationSharing=true;own.lastLocation={lat:25.0330,lng:121.5654,area:'臺北市信義區',place:'信義生活圈附近',updatedAt:now};}
+      if(own){own.locationSharing=true;own.lastLocation=s.journey?.id==='xiaohua'?{lat:25.0142,lng:121.4638,area:'新北市板橋區',place:'板橋車站附近（展示位置）',updatedAt:now}:{lat:25.0330,lng:121.5654,area:'臺北市信義區',place:'信義生活圈附近',updatedAt:now};}
     });
     render();myLocationSettings();GH.toast(manual?'位置已更新':'位置分享已開啟');
   }
