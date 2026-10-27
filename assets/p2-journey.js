@@ -104,19 +104,19 @@
     legacy.healthPointExpiry={...legacy.healthPointExpiry,nextExpiryPoints:0,nextExpiryDate:'—'};
   }
   const steps=[
-    ['首頁','index.html','從房間出發','一眼掌握家人近況、健康建議和自己的紀錄，知道今天可以做什麼。'],
-    ['健康建議','ai.html','把數字變成小行動','從前七天的紀錄，找到適合今天的走動與休息建議。'],
-    ['健康與心情紀錄','health.html?view=mood','先照顧自己','看看健康指標、動腦成果與心情樹，選擇一筆心情預覽分享給家人。'],
-    ['健康圈','group.html','走進家人的客廳','讓一則分享變成對話；留言、鼓勵與關心，都是陪伴的開始。'],
-    ['任務中心','activities.html','一起養成小習慣','小花和爸爸已達步行門檻，可各自領獎；也能查看個人動腦任務與參與紀錄。'],
-    ['爸爸的最後位置','group.html?view=location&member='+encodeURIComponent('爸爸'),'把關心帶到戶外','查看爸爸同意分享的最後位置和時間，找附近去處，再推薦回健康圈。'],
-    ['探索','explore.html?tab=places','走進健康街區','從板橋車站周邊開始找去處，也能閱讀健康文章、找到健康服務。'],
-    ['健康點兌換','exchange.html','讓累積有回饋','回首頁確認領到的健康點，再體驗兌換 HAPPY GO 點數。']
+    ['首頁','index.html','掌握自己與家人的近況','先看看家人的分享、健康建議、自己的紀錄與健康點，找到今天想關注的事情。'],
+    ['健康建議','ai.html','找到健康小行動','把前七天的紀錄整理成生活建議，讓小花從一件做得到的小事開始。'],
+    ['健康與心情紀錄','health.html?view=mood','留下身體與心情的變化','回顧健康指標、動腦成果與心情樹；日記預設私人，想分享時再決定內容並預覽發布。'],
+    ['健康圈','group.html','讓分享成為關心的開始','分享心情後，看看家人的近況與回應；透過留言、鼓勵與關心，延續日常的陪伴。'],
+    ['任務中心','activities.html','一起累積健康習慣','小花和爸爸各自達到步行門檻，就能解鎖任務、各自領獎；也能查看個人任務與參與紀錄。'],
+    ['爸爸的最後位置','group.html?view=location&member='+encodeURIComponent('爸爸'),'把關心變成生活提議','查看爸爸同意分享的最後位置與更新時間，找附近適合的去處，再推薦回健康圈。'],
+    ['探索','explore.html?tab=places','找到日常需要的健康資源','從板橋車站周邊找附近去處，也能閱讀健康與熱門文章，或找到進一步的健康服務協助。'],
+    ['健康點兌換','exchange.html','讓參與有累積與回饋','完成共同任務後，回首頁看看累積的健康點，再體驗兌換熟悉的 HAPPY GO 點數。']
   ];
   const page=location.pathname.split('/').pop();
   const index=page==='ai.html'?1:['health.html','records.html'].includes(page)?2:page==='group.html'?(params.get('view')==='location'?5:3):page==='activities.html'?4:page==='explore.html'?(params.has('family')?5:6):['exchange.html','points-history.html','exchange-history.html'].includes(page)?7:0;
   function guide(){
-    GH.sheet('吳小花的健康生活旅程','<p>45 歲的吳小花，和老公、爸爸、媽媽、女兒在同一個健康圈。從照顧自己，走向陪伴家人，再一起探索戶外。</p><ol class="journey-chapters">'+steps.map((step,i)=>'<li'+(i===index?' class="is-current"':'')+'><a href="'+step[1]+'"><small>'+step[2]+'</small><strong>'+step[0]+'</strong><span>'+step[3]+'</span></a></li>').join('')+'</ol><p class="p2-small">這是獨立展示情境。人物、健康、心情與家人位置均為示意資料；附近地點使用 Google 即時搜尋，需網路連線。切換頁面與重新整理會保留本次操作。</p><a class="p2-secondary full" href="journey.html">返回旅程介紹</a><button type="button" id="journey-restart" class="p2-quiet full">重新開始展示</button>');
+    GH.sheet('吳小花的健康陪伴日常','<p>45 歲的吳小花平常忙於工作與家庭，也關心爸媽的生活。她和老公、爸爸、媽媽、女兒在同一個健康圈，希望照顧自己，也和家人保持互動。跟著她的操作，看看紀錄、關心與健康行動如何融入日常。</p><ol class="journey-chapters">'+steps.map((step,i)=>'<li'+(i===index?' class="is-current"':'')+'><a href="'+step[1]+'"><small>'+step[2]+'</small><strong>'+step[0]+'</strong><span>'+step[3]+'</span></a></li>').join('')+'</ol><p class="p2-small">這是獨立展示情境。人物、健康、心情與家人位置均為示意資料；附近地點使用 Google 即時搜尋，需網路連線。切換頁面與重新整理會保留本次操作。</p><a class="p2-secondary full" href="journey.html">返回旅程介紹</a><button type="button" id="journey-restart" class="p2-quiet full">重新開始展示</button>');
     document.getElementById('journey-restart').onclick=()=>{
       GH.sheet('重新開始展示？','<p>將回到吳小花最初的展示資料，清除本次新增、刪除、分享與領獎結果。</p><div class="p2-actions"><button class="p2-secondary" data-close-sheet>取消</button><a class="p2-primary" href="index.html?journey=xiaohua&restart=1">確認重新開始</a></div>');
     };
