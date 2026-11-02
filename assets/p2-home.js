@@ -45,6 +45,7 @@
       circleBlock.insertAdjacentHTML('beforebegin','<section class="p2-guide-welcome" aria-label="首次使用導引"><span class="p2-guide-kicker">歡迎來到 GO HEALTH</span><h2>一起陪伴，把健康過成日常</h2><p>邀請家人與好友加入健康圈，分享近況、互相關心，也能一起完成健康任務。</p><div class="p2-guide-welcome-actions"><a id="p2-guide-join" class="p2-primary" href="group.html">建立或加入健康圈</a><button id="p2-guide-skip" class="p2-secondary" type="button">先看看</button></div></section>');
     }
     main().insertAdjacentHTML('beforeend','<section class="p2-guide-help-entry"><button id="p2-guide-help" type="button"><i class="fa-regular fa-circle-question" aria-hidden="true"></i><span>使用說明</span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></section>');
+    main().insertAdjacentHTML('beforeend','<footer class="p2-policy-footer"><span>GO HEALTH</span><a href="https://www.happygocard.com.tw/HAP/police" target="_blank" rel="noopener noreferrer">政策與須知</a></footer>');
     const adviceCase=GH.state.demoScenarioCode==='S04'?'triggered':GH.state.demoScenarioCode==='S03'?'none':null;
     if(adviceCase)main().querySelectorAll('a[href="ai.html"]').forEach(a=>a.href='ai.html?adviceCase='+adviceCase);
     GH.scene('home');

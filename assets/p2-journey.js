@@ -44,7 +44,7 @@
       return {...GH.createMoodEntry(value,note,at),id:'journey-mood-'+i};
     });
     s.moods.push({...GH.createMoodEntry('開心','今天也有人陪伴，感覺很好。',new Date(now.getTime()-300000)),id:'journey-mood-today-latest'});
-    s.gameHistory=Array.from({length:18},(_,i)=>({id:'journey-game-'+i,title:['眼力極限考驗','生活好時光','健康小學堂'][i%3],date:shift(today,-i-1),time:'19:20',seconds:48+i%6*5,level:'Level '+(i%3+1),points:i%3===2?50:100,kind:'個人任務',completed:true}));
+    s.gameHistory=Array.from({length:18},(_,i)=>({id:'journey-game-'+i,title:['眼力極限考驗','生活好時光','健康小學堂'][i%3],date:shift(today,-i-1),time:'19:20',seconds:48+i%6*5,level:'Level '+(i%3+1),points:100,kind:'個人任務',completed:true}));
     daughter.gameHistory=[{date:today,completed:true}];
     const post=(id,author,hours,kind,text,extra={})=>({id:'journey-post-'+id,groupId:s.group.id,author,createdAt:past(hours),time:dateKey(past(hours))===today?'今天':dateKey(past(hours))===shift(today,-1)?'昨天':'近七天',kind,text,comments:[],likes:1,...extra});
     s.posts=[

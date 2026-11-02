@@ -3,7 +3,7 @@
   const KEY = 'gohealth_p2_prototype_v3';
   const dateAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); };
   const sampleGames = ['眼力極限考驗', '生活好時光', '24H 一日店長', '家事達人', '健康小學堂', '幸福柑仔店'];
-  const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : i % sampleGames.length === 4 ? 50 : 100, kind: '個人任務', completed:true }));
+  const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : 100, kind: '個人任務', completed:true }));
   const fresh = () => ({
     records: [],
     diaries: [],

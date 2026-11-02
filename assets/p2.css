@@ -996,3 +996,9 @@ gmp-place-search,gmp-place-details{--gmp-mat-font-display-small:700 24px/1.5 'No
 @media(max-width:360px) { .p2-care-person { align-items:flex-start; flex-wrap:wrap; } .p2-care-person > div { flex-basis:100%; } .p2-care-person > button { margin-left:auto; } }
 #p2-mood-form .p2-mood-choices legend { font-size:20px; }
 #p2-mood-form > .p2-small { font-size:16px; line-height:1.7; }
+.p2-policy-footer { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px; padding:24px 0 16px; font-size:14px; line-height:1.7; }
+.p2-policy-footer > span { font-weight:700; color:#7c9187; }
+.p2-policy-footer > a { display:inline-flex; align-items:center; min-height:44px; color:#526e61; text-decoration:underline; text-underline-offset:3px; }
+.p2-health-start-card { width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
+.p2-health-start-card .p2-card-copy small { display:block; margin-top:8px; color:#5c786a; }
+.p2-scene > img[hidden] { display:none !important; }

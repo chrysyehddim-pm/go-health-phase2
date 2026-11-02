@@ -28,6 +28,18 @@
   function gameCard(game) {
     return '<a class="p2-game-card p2-art-card" href="' + esc(game.url) + '" target="_blank" rel="noopener noreferrer"><div class="p2-card-art" aria-hidden="true"><img src="images/scene/' + game.image + '.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">' + esc(game.points) + '</span><h3>' + esc(game.title) + '</h3><p>' + esc(game.detail) + '</p></div><span class="p2-game-cta">開始遊戲 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
   }
+  function healthStartCard() {
+    const task = DATA.healthStart;
+    if (!task) return '';
+    return '<button type="button" id="p2-health-start" class="p2-game-card p2-art-card p2-health-start-card"><div class="p2-card-art" aria-hidden="true"><img src="images/illustrations/health-start.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">每次完成 +'+task.points+' 點</span><h3>'+esc(task.title)+'</h3><p>'+esc(task.detail)+'</p><small>'+esc(task.frequency)+'</small></div><span class="p2-game-cta">'+(task.url?'立即填寫':'查看說明')+' <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span></button>';
+  }
+  function openHealthStart() {
+    const task = DATA.healthStart;
+    const year = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',year:'numeric'}).format(new Date());
+    const month = Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',month:'numeric'}).format(new Date()));
+    const period = year+' 年'+(month<=6?'上半年（1–6 月）':'下半年（7–12 月）');
+    GH.sheet(task.title,'<span class="p2-reward">每次完成 +'+task.points+' 健康點</span><p>透過問卷，讓我們更了解你的生活習慣，打造個人化健康服務。</p><p>每半年開放一次，每期完成可獲得 300 健康點，同一期不重複給點。</p><p class="p2-small">本期：'+period+'</p>'+(task.url?'<a class="p2-primary full" href="'+esc(task.url)+'" target="_blank" rel="noopener noreferrer">開始填寫問卷</a>':'<div class="p2-empty"><h3>問卷即將開放</h3><p>開放後，就能從這裡開始填寫。</p></div>')+'<button class="p2-secondary full" data-close-sheet>關閉</button>');
+  }
   function render() {
     GH.shell('任務', '任務中心');
     const history=view==='history';
@@ -56,7 +68,8 @@
       if(!tasks.length)cards.insertAdjacentHTML('beforeend','<div class="p2-empty"><h3>目前沒有可參與的任務</h3><p>過往成果可在參與紀錄查看。</p></div>');
       cards.querySelectorAll('[data-task]').forEach(b => b.onclick = () => openTask(DATA.tasks.find(t => t.id === b.dataset.task)));
     } else {
-      cards.innerHTML = '<div class="p2-section-head"><h2>腦健康遊戲</h2></div><p class="p2-section-intro">動動腦，完成遊戲後依各項任務規則累積健康點。</p><div class="p2-game-list">' + DATA.games.map(gameCard).join('') + '</div>';
+      cards.innerHTML = '<div class="p2-section-head"><h2>我的健康起點</h2></div><p class="p2-section-intro">從認識自己的生活習慣開始，每半年更新一次健康起點。</p><div class="p2-game-list">'+healthStartCard()+'</div><div class="p2-section-head"><h2>腦健康遊戲與健康知識</h2></div><p class="p2-section-intro">動動腦、學習健康知識，依各項任務規則累積健康點。</p><div class="p2-game-list">' + DATA.games.map(gameCard).join('') + '</div>';
+      document.getElementById('p2-health-start')?.addEventListener('click',openHealthStart);
     }
   }
   function openTask(task) {
