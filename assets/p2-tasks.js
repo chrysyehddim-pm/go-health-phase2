@@ -25,20 +25,57 @@
   }
   const progress=t=>GH.family.taskStatus(t).count;
   function groupCard(task) {const x=GH.family.taskStatus(task);return GH.taskCard(task,{count:x.count,joined:!!GH.state.group,claimed:x.claimed,preview:!GH.state.group});}
+  function taipeiDate(value = new Date()) {
+    if (typeof value === 'string' && /^\d{4}[-/]\d{2}[-/]\d{2}$/.test(value)) {
+      const day = value.replaceAll('/','-');
+      const parsed = new Date(day+'T00:00:00+08:00');
+      return !Number.isNaN(parsed.getTime()) && taipeiDate(parsed) === day ? day : '';
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+  }
+  function periodKey(task,day) {
+    if (!day) return '';
+    return task.cycle === 'halfYear' ? day.slice(0,4)+'-H'+(Number(day.slice(5,7))<=6?'1':'2') : task.cycle === 'month' ? day.slice(0,7) : day;
+  }
+  function personalCompleted(task, now = new Date()) {
+    const day=taipeiDate(now),period=periodKey(task,day);
+    if (!period) return false;
+    const records=[...(GH.state.personalTaskCompletions || []),...(GH.state.gameHistory || [])];
+    return records.some(row=>{
+      if (row.completed !== true && row.status !== 'completed') return false;
+      const matches = row.taskId ? row.taskId === task.id : row.gameId ? row.gameId === task.id : row.title === task.title;
+      if (!matches) return false;
+      const completedDay = taipeiDate(row.completedAt || row.date || 'invalid');
+      return completedDay && completedDay <= day && periodKey(task,completedDay) === period;
+    });
+  }
   function gameCard(game) {
-    return '<a class="p2-game-card p2-art-card" href="' + esc(game.url) + '" target="_blank" rel="noopener noreferrer"><div class="p2-card-art" aria-hidden="true"><img src="images/scene/' + game.image + '.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">' + esc(game.points) + '</span><h3>' + esc(game.title) + '</h3><p>' + esc(game.detail) + '</p></div><span class="p2-game-cta">開始遊戲 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
+    const reward = personalCompleted(game) ? '' : '<span class="p2-reward">+'+game.reward+' 點</span>';
+    return '<a data-personal-task="'+esc(game.id)+'" class="p2-game-card p2-art-card" href="' + esc(game.url) + '" target="_blank" rel="noopener noreferrer"><div class="p2-card-art" aria-hidden="true"><img src="images/scene/' + game.image + '.webp" alt="" loading="lazy"></div><div class="p2-card-copy">'+reward+'<h3>' + esc(game.title) + '</h3><p>' + esc(game.detail) + '</p></div><span class="p2-game-cta">開始遊戲 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span></a>';
   }
   function healthStartCard() {
     const task = DATA.healthStart;
     if (!task) return '';
-    return '<button type="button" id="p2-health-start" class="p2-game-card p2-art-card p2-health-start-card"><div class="p2-card-art" aria-hidden="true"><img src="images/illustrations/health-start.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">每次完成 +'+task.points+' 點</span><h3>'+esc(task.title)+'</h3><p>'+esc(task.detail)+'</p><small>'+esc(task.frequency)+'</small></div><span class="p2-game-cta">'+(task.url?'立即填寫':'查看說明')+' <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></span></button>';
+    const body='<div class="p2-card-art" aria-hidden="true"><img src="images/illustrations/health-start.webp" alt="" loading="lazy"></div><div class="p2-card-copy"><span class="p2-reward">+'+task.points+' 點</span><h3>'+esc(task.title)+'</h3><p>'+esc(task.detail)+'</p></div><span class="p2-game-cta">立即前往 <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></span>';
+    return task.url ? '<a id="p2-health-start" class="p2-game-card p2-art-card p2-health-start-card" href="'+esc(task.url)+'" target="_blank" rel="noopener noreferrer">'+body+'</a>' : '<button type="button" id="p2-health-start" class="p2-game-card p2-art-card p2-health-start-card">'+body+'</button>';
   }
   function openHealthStart() {
-    const task = DATA.healthStart;
-    const year = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',year:'numeric'}).format(new Date());
-    const month = Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',month:'numeric'}).format(new Date()));
-    const period = year+' 年'+(month<=6?'上半年（1–6 月）':'下半年（7–12 月）');
-    GH.sheet(task.title,'<span class="p2-reward">每次完成 +'+task.points+' 健康點</span><p>透過問卷，讓我們更了解你的生活習慣，打造個人化健康服務。</p><p>每半年開放一次，每期完成可獲得 300 健康點，同一期不重複給點。</p><p class="p2-small">本期：'+period+'</p>'+(task.url?'<a class="p2-primary full" href="'+esc(task.url)+'" target="_blank" rel="noopener noreferrer">開始填寫問卷</a>':'<div class="p2-empty"><h3>問卷即將開放</h3><p>開放後，就能從這裡開始填寫。</p></div>')+'<button class="p2-secondary full" data-close-sheet>關閉</button>');
+    GH.toast('問卷即將開放');
+  }
+  function renderPersonal(cards = document.getElementById('p2-task-cards')) {
+    if (!cards) return;
+    const monthly=DATA.games.filter(task=>task.cycle==='month'&&!personalCompleted(task));
+    const daily=DATA.games.filter(task=>task.cycle==='day');
+    const count=daily.filter(task=>personalCompleted(task)).length;
+    const section=(kind,title,icon,label,body)=>'<section class="p2-personal-category '+kind+'" data-personal-category="'+kind+'"><div class="p2-personal-heading"><h2><i class="fa-solid '+icon+'" aria-hidden="true"></i>'+title+'</h2><span class="p2-personal-frequency">'+label+'</span></div><div class="p2-game-list">'+body+'</div></section>';
+    cards.innerHTML=(DATA.healthStart&&!personalCompleted(DATA.healthStart)?section('periodic','定期賺點任務','fa-star','每半年一次',healthStartCard()):'')+
+      (monthly.length?section('monthly','每月賺點任務','fa-crown','每月一次',monthly.map(gameCard).join('')):'')+
+      section('daily','每日賺點任務','fa-calendar-check','今日完成 '+count+'/'+daily.length,daily.map(gameCard).join(''));
+    if (!DATA.healthStart.url) document.getElementById('p2-health-start')?.addEventListener('click',openHealthStart);
+  }
+  function refreshPersonal() {
+    if (view==='list' && category==='personal') renderPersonal();
   }
   function render() {
     GH.shell('任務', '任務中心');
@@ -68,8 +105,7 @@
       if(!tasks.length)cards.insertAdjacentHTML('beforeend','<div class="p2-empty"><h3>目前沒有可參與的任務</h3><p>過往成果可在參與紀錄查看。</p></div>');
       cards.querySelectorAll('[data-task]').forEach(b => b.onclick = () => openTask(DATA.tasks.find(t => t.id === b.dataset.task)));
     } else {
-      cards.innerHTML = '<div class="p2-section-head"><h2>我的健康起點</h2></div><p class="p2-section-intro">從認識自己的生活習慣開始，每半年更新一次健康起點。</p><div class="p2-game-list">'+healthStartCard()+'</div><div class="p2-section-head"><h2>腦健康遊戲與健康知識</h2></div><p class="p2-section-intro">動動腦、學習健康知識，依各項任務規則累積健康點。</p><div class="p2-game-list">' + DATA.games.map(gameCard).join('') + '</div>';
-      document.getElementById('p2-health-start')?.addEventListener('click',openHealthStart);
+      renderPersonal(cards);
     }
   }
   function openTask(task) {
@@ -111,5 +147,15 @@
     return '<article class="p2-list-card p2-history-record"><img class="p2-history-thumb" src="images/scene/'+esc(image)+'.webp" alt="" loading="lazy"><span class="body"><strong>'+esc(x.title)+'</strong><small>'+esc(x.date)+' · '+esc(group?(x.groupName||'健康圈任務'):'個人任務')+'</small>'+(group?'<span class="p2-history-status '+(claimed?'claimed':'pending')+'">'+label+'</span>':'')+'</span>'+(current&&!claimed?'<a class="p2-text-button" href="activities.html?task='+encodeURIComponent(task.id)+'">查看任務</a>':'')+'</article>';
   }
   document.addEventListener('DOMContentLoaded', render);
+  document.addEventListener('gh:state',refreshPersonal);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshPersonal();});
+  window.addEventListener('focus',refreshPersonal);
+  function schedulePersonalReset() {
+    const tomorrow = new Date(taipeiDate()+'T00:00:00+08:00').getTime()+86400000;
+    setTimeout(()=>{refreshPersonal();schedulePersonalReset();},Math.max(1,tomorrow-Date.now()));
+  }
+  schedulePersonalReset();
+  // Completion rows are supplied by the trusted member-data integration, never by opening a game link.
+  window.GH_PERSONAL_TASKS={isCompleted:personalCompleted,periodKey,taipeiDate,refresh:refreshPersonal};
 })();
 

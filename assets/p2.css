@@ -1002,3 +1002,13 @@ gmp-place-search,gmp-place-details{--gmp-mat-font-display-small:700 24px/1.5 'No
 .p2-health-start-card { width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
 .p2-health-start-card .p2-card-copy small { display:block; margin-top:8px; color:#5c786a; }
 .p2-scene > img[hidden] { display:none !important; }
+.p2-personal-category { margin-top:26px; }
+.p2-personal-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+.p2-personal-heading h2 { display:flex; align-items:center; gap:8px; margin:0; font-size:21px; line-height:1.5; }
+.p2-personal-heading h2 i { color:#3284db; font-size:21px; }
+.p2-personal-category.periodic h2 i { color:#10a0ca; }
+.p2-personal-category.monthly h2 i { color:#e59a14; }
+.p2-personal-frequency { flex:none; padding:5px 10px; border:1px solid #dce9f7; border-radius:999px; background:#f0f6ff; color:#527498; font-size:15px; line-height:1.5; }
+.p2-personal-category.periodic .p2-personal-frequency { color:#078db7; background:#f0faff; border-color:#d9f1fa; }
+.p2-personal-category.monthly .p2-personal-frequency { color:#947441; background:#fff9ec; border-color:#faedce; }
+@media(max-width:360px) { .p2-personal-heading h2 { font-size:19px; gap:6px; } .p2-personal-frequency { padding:4px 8px; font-size:14px; } }
