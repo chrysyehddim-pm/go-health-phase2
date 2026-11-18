@@ -50,7 +50,13 @@
     }
     const available=['steps','sleep','exercise','heart','weight'].filter(t=>GH.latest(t)).slice(0,2);
     const recordsBlock=[...main().querySelectorAll('.p2-home-block')].find(n=>n.querySelector('h2')?.textContent==='我的紀錄');
-    recordsBlock.querySelector('.p2-metric-grid').outerHTML=release.launch?'<div class="p2-home-stack">'+row('health.html?view=mood','journal','心情紀錄','記下今天的心情')+row('records.html','brain','動腦紀錄','回顧遊戲表現')+'</div>':available.length?'<div class="p2-metric-grid '+(available.length===1?'p2-single-metric':'')+'">'+available.map(t=>{const r=GH.latest(t);return '<a class="p2-metric" href="health.html?metric='+t+'"><span class="label">'+GH.art(t)+' '+GH.metric(t).name+'</span><span class="value">'+GH.format(r.value)+' <small>'+GH.metric(t).unit+'</small></span><small class="p2-metric-meta">'+esc(r.date)+'</small></a>';}).join('')+'</div>':'<a class="p2-home-link" href="health.html">'+GH.art('connect')+'<span><strong>'+(GH.state.device==='connected'?'尚無可用資料':'連接健康資料')+'</strong><small>'+(GH.state.device==='connected'?'更新資料或查看連接設定':'連接後查看自己的健康變化')+'</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+    if (release.launch) {
+      recordsBlock.querySelector('.p2-metric-grid').outerHTML = '<div class="p2-launch-record-grid">' +
+        '<a href="health.html?view=mood">' + GH.art('journal') + '<strong>心情紀錄</strong></a>' +
+        '<a href="records.html">' + GH.art('brain') + '<strong>動腦紀錄</strong></a></div>';
+    } else {
+      recordsBlock.querySelector('.p2-metric-grid').outerHTML=available.length?'<div class="p2-metric-grid '+(available.length===1?'p2-single-metric':'')+'">'+available.map(t=>{const r=GH.latest(t);return '<a class="p2-metric" href="health.html?metric='+t+'"><span class="label">'+GH.art(t)+' '+GH.metric(t).name+'</span><span class="value">'+GH.format(r.value)+' <small>'+GH.metric(t).unit+'</small></span><small class="p2-metric-meta">'+esc(r.date)+'</small></a>';}).join('')+'</div>':'<a class="p2-home-link" href="health.html">'+GH.art('connect')+'<span><strong>'+(GH.state.device==='connected'?'尚無可用資料':'連接健康資料')+'</strong><small>'+(GH.state.device==='connected'?'更新資料或查看連接設定':'連接後查看自己的健康變化')+'</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+    }
     const postTime=p=>{if(p.createdAt)return new Date(p.createdAt).getTime();return p.time==='今天'||p.time==='剛剛'?Date.now():p.time==='昨天'?Date.now()-86400000:0;};
     const recentCirclePosts=[...GH.state.posts].filter(p=>postTime(p)>=Date.now()-7*86400000).sort((a,b)=>postTime(b)-postTime(a)).slice(0,2);
     function taskSuggestion(){

@@ -2,24 +2,17 @@
   const config = window.GOHEALTH_DATA?.exchange || {};
   const rate = config.healthPointsPerHappyGoPoint || 500;
   const validityDays = config.limitedPointValidityDays || 90;
-  let balance = config.healthPointBalance || 1200;
-  try {
-    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3') || '{}');
-    balance += (state.pointAwards || []).reduce((sum, item) => sum + Number(item.points || 0), 0);
-    const exchanges = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges')) || '[]');
-    const latest = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange')) || 'null');
-    if (exchanges.length) balance -= exchanges.filter(x => x.status === 'success').reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
-    else if (latest && latest.status === 'success') balance -= Number(latest.healthPointsUsed || 0);
-  } catch (_) {}
+  let balance = window.GH.pointBalance();
   let amount = 1;
   let shouldFail = false;
 
   const $ = (id) => document.getElementById(id);
   const format = (number) => number.toLocaleString('zh-TW');
-  const maxAmount = () => Math.floor(balance / rate);
+  const maxAmount = () => Math.max(0, Math.floor(balance / rate));
 
   function render(){
-    amount = Math.max(1, Math.min(amount, Math.max(1, maxAmount())));
+    const max = maxAmount();
+    amount = max ? Math.max(1, Math.min(amount, max)) : 0;
     $('health-balance').textContent = format(balance);
     $('max-hg-points').textContent = maxAmount();
     $('exchange-amount').textContent = amount;
@@ -28,11 +21,16 @@
     $('remaining-points').textContent = format(balance - amount * rate);
     $('confirm-deduct').textContent = format(amount * rate);
     $('confirm-receive').textContent = amount;
-    $('exchange-submit').textContent = `確認兌換 ${amount} 點 HAPPY GO 點數`;
+    $('exchange-submit').textContent = max ? `確認兌換 ${amount} 點 HAPPY GO 點數` : '目前點數不足，無法兌換';
     $('decrease-btn').disabled = amount <= 1;
     $('increase-btn').disabled = amount >= maxAmount();
     $('exchange-submit').disabled = maxAmount() < 1;
     $('exchange-submit').classList.toggle('opacity-40', maxAmount() < 1);
+    $('exchange-insufficient').hidden = max > 0;
+    $('exchange-insufficient').textContent = `至少需要 ${format(rate)} 健康點才能兌換。`;
+    document.querySelectorAll('.quick-amount').forEach(button => {
+      button.disabled = !max || (button.dataset.amount !== 'max' && Number(button.dataset.amount) > max);
+    });
     $('rate-copy').textContent = format(rate);
     $('rate-summary').textContent = format(rate);
     $('validity-days').textContent = validityDays;
@@ -53,7 +51,7 @@
       balance -= amount * rate;
       const now = new Date();
       const dateTime = new Intl.DateTimeFormat('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(now).replace(/\//g, '/');
-      const recordId = `GH${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      const recordId = `GH${now.getTime()}-${crypto.randomUUID()}`;
       const record = {
         id: recordId,
         status: 'success',
@@ -94,9 +92,20 @@
     document.querySelectorAll('.quick-amount').forEach(button => {
       button.onclick = () => { amount = button.dataset.amount === 'max' ? maxAmount() : Number(button.dataset.amount); render(); };
     });
-    $('exchange-submit').onclick = () => $('exchange-confirm-modal').classList.remove('hidden-view');
+    $('exchange-submit').onclick = () => {
+      if (amount > 0 && amount <= maxAmount()) $('exchange-confirm-modal').classList.remove('hidden-view');
+    };
     $('cancel-exchange').onclick = () => $('exchange-confirm-modal').classList.add('hidden-view');
-    $('confirm-exchange').onclick = () => openResult(!shouldFail);
+    $('confirm-exchange').onclick = () => {
+      if ($('exchange-confirm-modal').classList.contains('hidden-view')) return;
+      balance = window.GH.pointBalance();
+      if (amount < 1 || amount > maxAmount()) {
+        $('exchange-confirm-modal').classList.add('hidden-view');
+        render();
+        return;
+      }
+      openResult(!shouldFail);
+    };
     render();
   });
 })();

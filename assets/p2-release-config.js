@@ -3,9 +3,9 @@ window.GH_RELEASE_CONFIG = {
   environment: 'demo',
   productionMode: 'launch',
   launch: {
-    brainTeamTask: false,
-    personalRewards: false,
-    pointsExchange: false,
+    brainTeamTask: true,
+    personalRewards: true,
+    pointsExchange: true,
     automaticCare: false
   },
   announcement: { enabled: false, title: '', body: '' },
