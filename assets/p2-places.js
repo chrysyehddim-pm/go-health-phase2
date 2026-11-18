@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  if (window.GH_RELEASE.launch) return;
   const GH = window.GH, esc = GH.escape, maps = window.GH_MAPS;
   const categories = ['健康飲食','公園步道','運動場所','醫院診所','藥局'];
   const icons = ['fa-bowl-food','fa-tree','fa-person-running','fa-hospital','fa-prescription-bottle-medical'];

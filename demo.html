@@ -8,6 +8,9 @@
     *{box-sizing:border-box}body{font:18px/1.65 system-ui;background:#f6f4ed;color:#244b3b;max-width:1120px;margin:32px auto;padding:20px}h1{font-size:30px;line-height:1.4}.intro{background:#eaf3e8;padding:20px;border-radius:16px;margin-bottom:30px}.scenario-section{margin:34px 0}.section-title{display:flex;align-items:center;gap:12px;margin:0 0 15px;font-size:24px}.section-title::after{content:"";height:1px;flex:1;background:#cad9cf}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}.scenario-card{display:flex;flex-direction:column;padding:22px;background:white;border:1px solid #d1dfd2;border-radius:20px;text-decoration:none;color:inherit}.scenario-card.is-guide{background:linear-gradient(135deg,#eaf6e9,#fffaf0);border:2px solid #88c7a1;box-shadow:0 6px 18px #287b4b18}.scenario-card:hover{border-color:#16865b;box-shadow:0 4px 16px #244b3b14}.scenario-card:focus-visible{outline:3px solid #16865b;outline-offset:3px}.scenario-card h3{font-size:22px;line-height:1.45;margin:12px 0}.number{font-weight:800;color:#147d55;background:#e8f5e9;border-radius:8px;padding:3px 9px;align-self:flex-start}p{margin:8px 0}b{display:block;font-size:16px;color:#62766d}.rule{border-top:1px solid #edf0e9;padding-top:12px;font-size:16px}.open{margin-top:auto;padding-top:14px;font-weight:800;color:#147d55}footer{margin-top:30px;color:#62766d;font-size:16px}@media(max-width:360px){body{padding:14px}.grid{grid-template-columns:1fr}}
     .scenario-actions{display:grid;gap:10px;margin-top:auto;padding-top:18px}.scenario-actions a{display:block;min-height:46px;padding:10px 14px;border:1px solid #b7d4c1;border-radius:12px;text-decoration:none;color:#147d55;font-weight:700}.scenario-actions .scenario-primary{background:#147d55;color:white}.scenario-actions a:focus-visible{outline:3px solid #16865b;outline-offset:3px}
   </style>
+  <script src="assets/p2-release-config.js?v=q4"></script>
+  <script src="assets/p2-release.js?v=q4"></script>
+  <link rel="stylesheet" href="assets/p2-release.css?v=q4">
 </head>
 <body>
   <h1>GO HEALTH Phase 2 情境導覽</h1>
@@ -19,6 +22,14 @@
   </div>
 
   <main>
+    <section class="scenario-section" aria-labelledby="launch-heading">
+      <h2 class="section-title" id="launch-heading">2027 Q4 首發驗收</h2>
+      <article class="scenario-card is-guide">
+        <h3>首發會員旅程</h3>
+        <p>從首頁依序體驗健康小提醒、心情紀錄、健康圈、共同任務與健康文章。</p>
+        <div class="scenario-actions"><a class="scenario-primary" href="index.html?release=launch">開始首發體驗 →</a><a href="index.html?release=launch&amp;announcement=preview">首頁公告 →</a><a href="service.html?release=launch&amp;state=maintenance&amp;preview=1">全站維護 →</a><a href="service.html?release=launch&amp;state=error&amp;return=explore.html&amp;preview=1">服務錯誤 →</a></div>
+      </article>
+    </section>
     <section class="scenario-section" aria-labelledby="journey-heading">
       <h2 class="section-title" id="journey-heading">完整會員旅程</h2>
       <a class="scenario-card is-guide" href="journey.html">

@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const GH = window.GH;
+  const release = window.GH_RELEASE;
   const guide = window.GH_GUIDE;
   const esc = GH.escape;
   const main = () => document.getElementById('p2-main');
@@ -25,9 +26,31 @@
     const circleBlock=main().querySelector('.p2-home-circle'),points=main().querySelector('.p2-home-points');
     main().insertBefore(circleBlock,main().children[1]);main().append(points);
     [...main().querySelectorAll('.p2-home-block')].filter(n=>['任務中心','探索健康服務'].includes(n.querySelector('h2')?.textContent)).forEach(n=>n.remove());
+    if (!release.enabled('pointsExchange')) {
+      points.querySelector('.exchange-entry')?.remove();
+      points.querySelector('a[href="points-history.html"]').textContent = '累點紀錄';
+    }
+    if (release.launch) {
+      const advice = main().querySelector('.p2-feature');
+      const adviceBlock = advice.closest('section');
+      const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+      const dayNumber = Date.parse(day + 'T00:00:00Z') / 86400000;
+      const pool = window.GH_ADVICE.generic;
+      adviceBlock.id = 'health-reminder';
+      adviceBlock.querySelector('h2').textContent = '健康小提醒';
+      advice.querySelector('h3').remove();
+      advice.querySelector('p').textContent = pool[dayNumber % pool.length];
+      advice.querySelector('a').remove();
+    }
+    const notice = release.config.announcement;
+    if (notice.enabled || (release.demo && new URLSearchParams(location.search).get('announcement') === 'preview')) {
+      const preview = !notice.enabled ? '&preview=1' : '';
+      const title = notice.enabled ? notice.title || '服務公告' : '服務公告預覽';
+      circleBlock.insertAdjacentHTML('beforebegin', '<a class="p2-release-announcement" href="service.html?state=announcement'+preview+'"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> '+esc(title)+' <span>查看公告 ›</span></a>');
+    }
     const available=['steps','sleep','exercise','heart','weight'].filter(t=>GH.latest(t)).slice(0,2);
     const recordsBlock=[...main().querySelectorAll('.p2-home-block')].find(n=>n.querySelector('h2')?.textContent==='我的紀錄');
-    recordsBlock.querySelector('.p2-metric-grid').outerHTML=available.length?'<div class="p2-metric-grid '+(available.length===1?'p2-single-metric':'')+'">'+available.map(t=>{const r=GH.latest(t);return '<a class="p2-metric" href="health.html?metric='+t+'"><span class="label">'+GH.art(t)+' '+GH.metric(t).name+'</span><span class="value">'+GH.format(r.value)+' <small>'+GH.metric(t).unit+'</small></span><small class="p2-metric-meta">'+esc(r.date)+'</small></a>';}).join('')+'</div>':'<a class="p2-home-link" href="health.html">'+GH.art('connect')+'<span><strong>'+(GH.state.device==='connected'?'尚無可用資料':'連接健康資料')+'</strong><small>'+(GH.state.device==='connected'?'更新資料或查看連接設定':'連接後查看自己的健康變化')+'</small></span><i class="fa-solid fa-chevron-right"></i></a>';
+    recordsBlock.querySelector('.p2-metric-grid').outerHTML=release.launch?'<div class="p2-home-stack">'+row('health.html?view=mood','journal','心情紀錄','記下今天的心情')+row('records.html','brain','動腦紀錄','回顧遊戲表現')+'</div>':available.length?'<div class="p2-metric-grid '+(available.length===1?'p2-single-metric':'')+'">'+available.map(t=>{const r=GH.latest(t);return '<a class="p2-metric" href="health.html?metric='+t+'"><span class="label">'+GH.art(t)+' '+GH.metric(t).name+'</span><span class="value">'+GH.format(r.value)+' <small>'+GH.metric(t).unit+'</small></span><small class="p2-metric-meta">'+esc(r.date)+'</small></a>';}).join('')+'</div>':'<a class="p2-home-link" href="health.html">'+GH.art('connect')+'<span><strong>'+(GH.state.device==='connected'?'尚無可用資料':'連接健康資料')+'</strong><small>'+(GH.state.device==='connected'?'更新資料或查看連接設定':'連接後查看自己的健康變化')+'</small></span><i class="fa-solid fa-chevron-right"></i></a>';
     const postTime=p=>{if(p.createdAt)return new Date(p.createdAt).getTime();return p.time==='今天'||p.time==='剛剛'?Date.now():p.time==='昨天'?Date.now()-86400000:0;};
     const recentCirclePosts=[...GH.state.posts].filter(p=>postTime(p)>=Date.now()-7*86400000).sort((a,b)=>postTime(b)-postTime(a)).slice(0,2);
     function taskSuggestion(){
@@ -52,7 +75,7 @@
     document.getElementById('p2-guide-join')?.addEventListener('click',()=>guide.mark('welcome'));
     document.getElementById('p2-guide-skip')?.addEventListener('click',()=>{guide.mark('welcome');main().querySelector('.p2-guide-welcome')?.remove();});
     document.getElementById('p2-guide-help').onclick=guide.help;
-    document.getElementById('p2-point-info').onclick = () => GH.sheet('健康點說明', '<div class="p2-info-list"><p>完成符合條件的健康任務，可累積健康點。</p><p>每 500 健康點可兌換 1 點 HAPPY GO 點數。</p><p>點選「累兌點紀錄」可查看點數使用情形。</p></div><button class="p2-primary full" data-close-sheet>我知道了</button>');
+    document.getElementById('p2-point-info').onclick = () => GH.sheet('健康點說明', '<div class="p2-info-list"><p>完成符合條件的健康任務，可累積健康點。</p>'+(release.enabled('pointsExchange')?'<p>每 500 健康點可兌換 1 點 HAPPY GO 點數。</p><p>點選「累兌點紀錄」可查看點數使用情形。</p>':'<p>點選「累點紀錄」可查看獲得的健康點。</p>')+'</div><button class="p2-primary full" data-close-sheet>我知道了</button>');
     document.getElementById('p2-notifications').onclick = notifications;
   }
   function notifications() {

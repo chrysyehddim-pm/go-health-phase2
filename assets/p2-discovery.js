@@ -22,6 +22,7 @@
   }
   async function renderAI() {
     GH.shell('首頁', '我的健康建議');
+    if (window.GH_RELEASE.launch) return;
     const q=new URLSearchParams(location.search),review=q.get('adviceCase');
     if(review&&['none','partial','empty','short','triggered','maintain','error'].includes(review))GH.set(s=>GH_ADVICE.preview(s,review));
     const paint=()=>{
@@ -107,16 +108,19 @@
     return score;
   }
   function renderExplore() {
-    const family = new URLSearchParams(location.search).get('family');
+    const release = window.GH_RELEASE;
+    const query = new URLSearchParams(location.search);
+    const family = release.launch ? null : query.get('family');
     GH.shell(family ? '健康圈' : '探索', '探索');
-    const tab = new URLSearchParams(location.search).get('tab') === 'articles' && !family ? 'articles' : 'places';
-    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">'+(family?'家人附近去處':'探索')+'</h1><p class="p2-lead">'+(family?'找個合適的地方，分享一句貼心的推薦。':'讀一篇健康文章，或找個地方出門走走。')+'</p></section>'+
-      (family?'':'<section><div class="p2-segment p2-primary-tabs" role="tablist" aria-label="探索分類"><button role="tab" id="p2-tab-places" aria-controls="p2-places-panel" data-tab="places">附近去處</button><button role="tab" id="p2-tab-articles" aria-controls="p2-articles-panel" data-tab="articles">健康文章</button></div></section>')+
+    const tab = release.launch || (query.get('tab') === 'articles' && !family) ? 'articles' : 'places';
+    main().innerHTML = '<section><p class="p2-eyebrow">從生活出發</p><h1 class="p2-page-title">'+(family?'家人附近去處':'探索')+'</h1><p class="p2-lead">'+(family?'找個合適的地方，分享一句貼心的推薦。':release.launch?'讀一篇健康文章，找到今天用得上的知識。':'讀一篇健康文章，或找個地方出門走走。')+'</p></section>'+
+      (family?'':'<section><div class="p2-segment p2-primary-tabs" role="tablist" aria-label="探索分類"><button role="tab" id="p2-tab-places" aria-controls="p2-places-panel" data-tab="places">附近去處'+(release.launch?release.badge:'')+'</button><button role="tab" id="p2-tab-articles" aria-controls="p2-articles-panel" data-tab="articles">健康文章</button></div></section>')+
       '<section id="p2-places-panel" role="tabpanel" aria-labelledby="p2-tab-places" hidden></section><section id="p2-articles-panel" role="tabpanel" aria-labelledby="p2-tab-articles" hidden></section>'+
       '<section class="p2-hospital-services"><div class="p2-section-head"><h2>更多健康協助</h2></div><p>需要更多資訊與專業協助時，讓亞東醫院陪你一起照顧健康。</p><a class="p2-hospital-service" href="https://page.line.me/769uaenm" target="_blank" rel="noopener noreferrer"><span class="p2-service-icon line"><i class="fa-brands fa-line"></i></span><span><strong>亞東醫院 LINE 好友</strong><small>接收健康資訊與院方最新消息</small><em>加入 LINE 好友</em></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a><a class="p2-hospital-service" href="https://www.fetnet.net/content/cbu/tw/digital-services/health/5g-telemedicine/partners/femh.html" target="_blank" rel="noopener noreferrer"><span class="p2-service-icon"><i class="fa-solid fa-video"></i></span><span><strong>亞東醫院 Health Online</strong><small>了解遠距健康諮詢服務</small><em>查看服務介紹</em></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a></section>';
     let articleRendered=false;
     const select=name=>{
-      const p=new URLSearchParams(location.search);p.set('tab',name);history.replaceState(null,'',location.pathname+'?'+p);
+      if (release.launch && name === 'places') return release.explain('places');
+      const p=new URLSearchParams(location.search);p.set('tab',name);if(release.launch){p.delete('family');p.delete('placeState');}history.replaceState(null,'',location.pathname+'?'+p);
       document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});
       document.getElementById('p2-places-panel').hidden=name!=='places';
       document.getElementById('p2-articles-panel').hidden=name!=='articles';
@@ -128,6 +132,7 @@
       b.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const buttons=[...document.querySelectorAll('[data-tab]')];const target=buttons[e.key==='Home'?0:e.key==='End'?1:1-buttons.indexOf(b)];select(target.dataset.tab);target.focus();}};
     });
     select(tab);GH.scene('explore');
+    if (release.launch && (query.get('tab') === 'places' || query.has('family'))) release.explain('places');
   }
   function renderArticles() {
     const articles = [...(window.GH_ARTICLES || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''),'zh-TW'));

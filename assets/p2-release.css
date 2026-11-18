@@ -1,0 +1,13 @@
+.p2-release-badge { display:inline-block; padding:2px 7px; border-radius:999px; background:#e0eae3; color:#405b4d; font-size:12px; font-weight:700; white-space:nowrap; }
+.p2-segment button:has(.p2-release-badge), .p2-release-setting { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:5px 8px; min-height:44px; }
+.p2-release-announcement { display:block; padding:14px; border:1px solid #c6dfcc; border-radius:14px; background:#edf6ee; color:#24563e; text-decoration:none; font-weight:700; }
+.p2-release-announcement span { margin-inline-start:8px; font-size:.85em; }
+.p2-service-page { min-height:100svh; background:#f6f7ef; color:#233e34; font: 1rem/1.65 system-ui,sans-serif; margin:0; display:grid; place-items:center; padding:24px; }
+.p2-service-card { width:min(100%,440px); box-sizing:border-box; padding:clamp(20px,5vw,32px); background:#fffef9; border:1px solid #dce8dc; border-radius:25px; box-shadow:0 16px 50px #244b3b14; }
+.p2-service-card img { width:min(145px,100%); height:auto; }
+.p2-service-card h1 { margin:18px 0 8px; font-size:1.7rem; }
+.p2-service-card p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.p2-service-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.p2-service-actions a, .p2-service-actions button { display:inline-flex; align-items:center; justify-content:center; padding:8px 16px; min-height:44px; box-sizing:border-box; border:1px solid #17674b; border-radius:12px; background:#17674b; color:white; font:inherit; font-weight:700; text-decoration:none; cursor:pointer; }
+.p2-service-actions .secondary { background:transparent; color:#17674b; }
+@media(max-width:390px) { .p2-segment button:has(.p2-release-badge) { flex-direction:column; } }

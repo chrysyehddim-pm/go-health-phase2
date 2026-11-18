@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const GH = window.GH;
+  const release = window.GH_RELEASE;
   const esc = GH.escape;
   const main = () => document.getElementById('p2-main');
   const types = [['steps', 'fa-shoe-prints'], ['sleep', 'fa-moon'], ['heart', 'fa-heart-pulse'], ['exercise', 'fa-person-running'], ['weight', 'fa-weight-scale']];
@@ -15,6 +16,11 @@
   const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
   function render() {
     GH.shell('紀錄', '健康紀錄');
+    if (release.launch) {
+      renderMood();
+      if (query().has('metric') || query().get('view') === 'metrics') release.explain('metrics');
+      return;
+    }
     if (query().get('metric')) return renderMetric(query().get('metric'));
     if (query().get('view') === 'mood') return renderMood();
     renderOverview();
@@ -26,6 +32,7 @@
   }
   let moodShown=10;
   function recordHeader(mood=false) {
+    if (release.launch) return '<section><p class="p2-eyebrow">留給自己的時間</p><h1 class="p2-page-title">紀錄</h1><p class="p2-lead">記下心情，也回顧動腦成果。</p></section><nav class="p2-segment p2-primary-tabs p2-record-tabs" aria-label="紀錄分類"><button type="button" data-release-block="metrics">健康指標'+release.badge+'</button><a href="health.html?view=mood" class="active" aria-current="page">心情紀錄</a></nav><a class="p2-secondary full" href="records.html">查看動腦紀錄</a>';
     return '<section><p class="p2-eyebrow">留給自己的時間</p><h1 class="p2-page-title">紀錄</h1><p class="p2-lead">照顧身體，也留意自己的心情。</p></section><nav class="p2-segment p2-primary-tabs p2-record-tabs" aria-label="紀錄分類"><a href="health.html" class="'+(!mood?'active':'')+'" '+(!mood?'aria-current="page"':'')+'>健康指標</a><a href="health.html?view=mood" class="'+(mood?'active':'')+'" '+(mood?'aria-current="page"':'')+'>心情紀錄</a></nav>';
   }
   function renderOverview() {

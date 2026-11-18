@@ -29,7 +29,7 @@
   const help = () => {
     GH.sheet('使用說明', '<div class="p2-guide-help-list">' +
       '<section><span class="p2-guide-help-art"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span><div><h3>和家人建立健康圈</h3><p>建立健康圈，或輸入家人的邀請碼加入；在圈內分享近況、互相關心。</p><a href="group.html">前往健康圈 <i class="fa-solid fa-chevron-right"></i></a></div></section>' +
-      '<section><span class="p2-guide-help-art">' + GH.art('connect') + '</span><div><h3>連接健康資料</h3><p>選擇同意讀取的項目，連接後可在紀錄頁查看有資料的健康指標。</p><a href="health.html">前往紀錄 <i class="fa-solid fa-chevron-right"></i></a></div></section>' +
+      (window.GH_RELEASE.launch ? '' : '<section><span class="p2-guide-help-art">' + GH.art('connect') + '</span><div><h3>連接健康資料</h3><p>選擇同意讀取的項目，連接後可在紀錄頁查看有資料的健康指標。</p><a href="health.html">前往紀錄 <i class="fa-solid fa-chevron-right"></i></a></div></section>') +
       '<section><span class="p2-guide-help-art">' + GH.art('missions') + '</span><div><h3>一起完成健康任務</h3><p>家人各自完成條件；達到任務人數後，符合條件的成員可在期限內各自領取健康點。</p><a href="activities.html">前往任務 <i class="fa-solid fa-chevron-right"></i></a></div></section>' +
       '</div>');
   };

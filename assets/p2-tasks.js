@@ -65,6 +65,10 @@
   }
   function renderPersonal(cards = document.getElementById('p2-task-cards')) {
     if (!cards) return;
+    if (!window.GH_RELEASE.enabled('personalRewards')) {
+      cards.innerHTML = '<div class="p2-empty"><h2>個人賺點任務尚未開放</h2><p>你可以先看看健康圈的共同任務。</p></div>';
+      return;
+    }
     const monthly=DATA.games.filter(task=>task.cycle==='month'&&!personalCompleted(task));
     const daily=DATA.games.filter(task=>task.cycle==='day');
     const count=daily.filter(task=>personalCompleted(task)).length;
@@ -85,7 +89,7 @@
 
     if (view === 'list') renderList(); else renderHistory();
     const selectedTask=new URLSearchParams(location.search).get('task');
-    if(selectedTask&&view==='list'){const task=DATA.tasks.find(t=>t.id===selectedTask);if(task)openTask(task);const p=new URLSearchParams(location.search);p.delete('task');window.history.replaceState(null,'',location.pathname+(p.size?'?'+p:''));}
+    if(selectedTask&&view==='list'){const task=GH.family.activeTasks().find(t=>t.id===selectedTask);if(task)openTask(task);const p=new URLSearchParams(location.search);p.delete('task');window.history.replaceState(null,'',location.pathname+(p.size?'?'+p:''));}
     GH.scene('tasks');
     document.getElementById('app-root')?.classList.toggle('p2-plain-page',history);
   }

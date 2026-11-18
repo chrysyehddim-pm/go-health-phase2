@@ -57,7 +57,7 @@
   const label=claimed?(claimedElsewhere?'本週已領取':'已領取'):!active?'本期已結束':self&&unlocked?'已完成待領取':self?'本人已完成':unlocked?'團隊已解鎖':completed.length?'進行中':'尚未開始';
   return {key,claimKey:payout.key,period:p,count:completed.length,completedMembers:completed,joined:true,enrolled:true,self,unlocked,claimed,claimedElsewhere,active,canClaim:active&&self&&unlocked&&!claimed,label,stateKey};
  }
- function activeTasks(){const p=period();return !p||today()>=p.start&&today()<=p.end?(window.GH_DEMO?.tasks||[]):[];}
+ function activeTasks(){const p=period();return !p||today()>=p.start&&today()<=p.end?(window.GH_DEMO?.tasks||[]).filter(t=>!window.GH_RELEASE.launch || t.type==='moodDays' || (t.type==='gameDays' && window.GH_RELEASE.enabled('brainTeamTask'))):[];}
  function recordResult(t,x){
   if(!x.self||x.claimedElsewhere)return;const s=GH.state;
   let row=s.activityHistory.find(r=>r.claimKey===x.key);
@@ -67,12 +67,13 @@
  }
  function remember(){
   if(!GH.state.group||!window.GH_DEMO)return;
-  window.GH_DEMO.tasks.forEach(t=>{const x=taskStatus(t);recordResult(t,x);const notificationId='reward-'+x.key;
+  const tasks = window.GH_RELEASE.launch ? activeTasks() : window.GH_DEMO.tasks;
+  tasks.forEach(t=>{const x=taskStatus(t);recordResult(t,x);const notificationId='reward-'+x.key;
    if(!x.canClaim)GH.state.notifications.filter(n=>n.id===notificationId).forEach(n=>n.read=true);
    else if(!GH.state.notifications.some(n=>n.id===notificationId))GH.state.notifications.unshift({id:notificationId,title:'可以領取健康點了',detail:t.title+'已解鎖，請於'+x.period.end+' 23:59前領取。',url:'activities.html',actionLabel:'前往領取',read:false});
   });
  }
- function claim(t){const x=taskStatus(t);if(!x.canClaim)return false;GH.set(s=>{
+ function claim(t){if(window.GH_RELEASE.launch && !activeTasks().some(task=>task.id===t.id))return false;const x=taskStatus(t);if(!x.canClaim)return false;GH.set(s=>{
   s.taskClaimLedger[x.claimKey]={memberId:s.member.id||'demo-member-self',taskId:t.id,periodStart:x.period.start,groupId:s.group.id,createdAt:new Date().toISOString()};
   if(!s.taskClaims.includes(x.key))s.taskClaims.push(x.key);
   s.pointAwards.unshift({id:x.claimKey,title:t.title,points:t.points,date:today()});s.notifications.filter(n=>n.id==='reward-'+x.key).forEach(n=>n.read=true);
@@ -107,6 +108,7 @@
  }
  const careTime=value=>{if(!value)return null;const n=Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(value)?value+'T00:00:00+08:00':value);return Number.isFinite(n)?n:null;};
  function evaluateCare(){
+  if (!window.GH_RELEASE.enabled('automaticCare')) return;
   const s=GH.state,g=s.group;if(!g)return;s.careEvents||=[];
   if(s.careRulesVersion!==2){s.careEvents.forEach(e=>e.withdrawn=true);s.notifications.filter(n=>n.careBatch).forEach(n=>n.read=true);s.careRulesVersion=2;}
   const range=careWeek(),cutoff=careTime(range.start),sevenDays=7*86400000;
@@ -122,7 +124,7 @@
    const games=m.name==='我'?s.gameHistory:(m.gameHistory||[]);
    const gameTimes=games.filter(r=>r.completed===true).map(r=>careTime(r.completedAt||r.date)).filter(n=>n!==null);
    const lastLogin=Math.max(joined,careTime(m.lastLoginAt)??joined),lastGame=Math.max(joined,careTime(m.lastGameAt)??joined,...gameTimes);
-   const health=healthConditions(m,range),conditions={login:oldEnough&&lastLogin<=cutoff-sevenDays,game:oldEnough&&lastGame<=cutoff-sevenDays,...health};
+   const health=window.GH_RELEASE.launch?{}:healthConditions(m,range),conditions={login:oldEnough&&lastLogin<=cutoff-sevenDays,game:oldEnough&&lastGame<=cutoff-sevenDays,...health};
    const rules=Object.entries(conditions).filter(([,value])=>value===true).map(([key])=>key);
    let event=s.careEvents.find(e=>e.groupId===g.id&&e.subjectId===id&&e.weekStart===range.start);
    if(!event&&!rules.length)return;
@@ -135,7 +137,7 @@
    if(event.recipients.includes('我')&&!s.notifications.some(n=>n.id===notificationId))s.notifications.unshift({id:notificationId,careEventId:event.id,careWeek:range.start,groupId:g.id,title:'本週一起關心'+m.name,detail:'家人有值得關心的近況，傳句話陪伴一下。',url:'group.html',read:false});
   });GH.save();
  }
- function visibleCare(){evaluateCare();const g=GH.state.group,range=careWeek();return g?(GH.state.careEvents||[]).filter(e=>e.groupId===g.id&&e.weekStart===range.start&&!e.withdrawn&&!e.closed&&e.recipients.includes('我')):[];}
+ function visibleCare(){if(!window.GH_RELEASE.enabled('automaticCare'))return [];evaluateCare();const g=GH.state.group,range=careWeek();return g?(GH.state.careEvents||[]).filter(e=>e.groupId===g.id&&e.weekStart===range.start&&!e.withdrawn&&!e.closed&&e.recipients.includes('我')):[];}
  function caredByMe(event){const id=GH.state.member.id||'demo-member-self';return (event.responses||[]).some(r=>r.authorId?r.authorId===id:r.author==='我');}
  function careCards(){
   const events=visibleCare();if(!events.length)return '';const range=careWeek(),pending=events.filter(e=>!caredByMe(e)),done=events.filter(caredByMe);

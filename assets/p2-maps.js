@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  if (window.GH_RELEASE.launch) return;
   const types = {
     '公園步道': ['park', 'hiking_area'],
     '運動場所': ['gym', 'fitness_center', 'sports_complex'],

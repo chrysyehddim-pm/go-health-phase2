@@ -6,8 +6,8 @@
   try {
     const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3') || '{}');
     balance += (state.pointAwards || []).reduce((sum, item) => sum + Number(item.points || 0), 0);
-    const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
-    const latest = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null');
+    const exchanges = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges')) || '[]');
+    const latest = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange')) || 'null');
     if (exchanges.length) balance -= exchanges.filter(x => x.status === 'success').reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
     else if (latest && latest.status === 'success') balance -= Number(latest.healthPointsUsed || 0);
   } catch (_) {}
@@ -67,10 +67,10 @@
         expiresAt: expiryDate(),
         note: '兌換已完成。'
       };
-      sessionStorage.setItem('gohealth_latest_exchange', JSON.stringify(record));
-      const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
+      sessionStorage.setItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange'), JSON.stringify(record));
+      const exchanges = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges')) || '[]');
       exchanges.push(record);
-      sessionStorage.setItem('gohealth_p2_exchanges', JSON.stringify(exchanges));
+      sessionStorage.setItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges'), JSON.stringify(exchanges));
       icon.className = 'w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 bg-emerald-50 text-emerald-600';
       icon.innerHTML = '<i class="fa-solid fa-check"></i>';
       $('result-title').textContent = '兌換成功';

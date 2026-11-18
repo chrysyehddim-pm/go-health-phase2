@@ -1,6 +1,14 @@
 (function(){
   const $ = (id) => document.getElementById(id);
-  const data = window.GOHEALTH_DATA || {};
+  const release = window.GH_RELEASE;
+  const data = release.launch ? {} : window.GOHEALTH_DATA || {};
+  if (!release.enabled('pointsExchange')) {
+    document.querySelector('.exchange-entry')?.remove();
+    document.querySelector('[data-filter="use"]')?.remove();
+    document.querySelector('h1').textContent = '累點紀錄';
+    document.title = '累點紀錄｜GO HEALTH';
+    document.querySelector('.history-query-note').textContent = '顯示三個月內最新 100 筆累點紀錄';
+  }
   const exchange = data.exchange || {};
   const expiry = data.healthPointExpiry || {};
   const format = (value) => Number(value || 0).toLocaleString('zh-TW');
@@ -9,16 +17,16 @@
   let visibleCount = 10;
 
   const records = [...(data.pointHistory || [])];
-  let currentBalance = exchange.healthPointBalance || 1200;
+  let currentBalance = release.launch ? 0 : exchange.healthPointBalance || 1200;
   try {
-    const state = JSON.parse(sessionStorage.getItem('gohealth_p2_prototype_v3') || '{}');
+    const state = JSON.parse(sessionStorage.getItem(window.GH.KEY) || '{}');
     const awards = state.pointAwards || [];
     awards.forEach(item => records.push({ id: 'award-' + item.id, type: 'earn', title: item.title, occurredAt: item.date + ' 12:00', points: item.points, balanceAfter: null }));
     currentBalance += awards.reduce((sum, item) => sum + Number(item.points || 0), 0);
-    const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
+    const exchanges = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges')) || '[]');
     exchanges.filter(item => item.status === 'success').forEach(item => records.push({ ...item, type: 'use', title: '兌換 HAPPY GO 點數', occurredAt: item.requestedAt, points: -item.healthPointsUsed }));
     if (exchanges.length) currentBalance -= exchanges.filter(item => item.status === 'success').reduce((sum, item) => sum + Number(item.healthPointsUsed || 0), 0);
-    else { const last = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null'); if (last?.status === 'success') currentBalance -= Number(last.healthPointsUsed || 0); }
+    else { const last = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange')) || 'null'); if (last?.status === 'success') currentBalance -= Number(last.healthPointsUsed || 0); }
   } catch (_) {}
   (data.exchangeHistory || []).filter(record => record.status === 'success').forEach(record => records.push({
     ...record,
@@ -28,7 +36,7 @@
     points: -record.healthPointsUsed
   }));
   try {
-    const latest = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null');
+    const latest = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange')) || 'null');
     if(latest?.id && !records.some(record => record.id === latest.id)) records.push({ ...latest, type:'use', title:'兌換 HAPPY GO 點數', occurredAt:latest.requestedAt, points:-latest.healthPointsUsed });
   } catch (error) {}
   const timestamp = value => new Date(String(value || '').replace(' ', 'T').replaceAll('/', '-')).getTime() || 0;

@@ -1,4 +1,5 @@
 (function(){
+ if(window.GH_RELEASE.launch || !window.GH_RELEASE.demo)return;
  const GH=window.GH,param=new URLSearchParams(location.search),requested=param.get('scenario'),aliases={S01:'new',S02:'new',S03:'no-consent',S04:'all-metrics',S05:'owner',S06:'no-posts',S07:'care-many',S08:'family-location',S09:'task-wait',S10:'task-unlocked',S11:'task-ready',S12:'task-claimed',S13:'history',S14:'task-full',S15:'mood'},id=aliases[requested]||requested;if(!id)return;
  if(requested==='S13')param.set('view','history');
  const valid=['history','new','member','owner','no-posts','no-consent','no-data','one-metric','two-metrics','all-metrics','stale','care','care-health','family-location','task-wait','task-unlocked','task-ready','task-claimed','task-full','task-expired','task-next','task-joined','task-game','task-rollover','care-expired','care-many','care-recovered','care-insufficient','care-steps','mood'];if(!valid.includes(id))return;

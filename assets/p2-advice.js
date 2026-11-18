@@ -60,5 +60,5 @@
   if(key!=='empty')s.records=s.healthPreferences.flatMap(type=>Array.from({length:key==='short'?2:7},(_,i)=>({type,date:day(i+1),value:({steps:key==='maintain'?6500:3800,sleep:key==='maintain'?7.5:6.2,exercise:key==='maintain'?25:[15,15,15,15,10,10,10][i],heart:key==='maintain'?72:[103,102,78,76,75,74,73][i],weight:65})[type],validDay:true,fullDay:true,sleepDailyTotal:type==='sleep',resting:type==='heart',intensity:type==='exercise'?'moderate':undefined,source:'HAPPY GO App · 手機健康資料'})));
   s.healthUpdatedAt=new Date().toISOString();s.healthSync=key==='error'?'error':'ready';
  }
- window.GH_ADVICE={compute,preview};
+ window.GH_ADVICE={compute,preview,generic:copy.generic};
 })();

@@ -1,6 +1,7 @@
 (function () {
   'use strict';
-  const KEY = 'gohealth_p2_prototype_v3';
+  const release = window.GH_RELEASE;
+  const KEY = 'gohealth_p2_prototype_v3' + (release.launch ? '_launch' : '');
   const dateAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); };
   const sampleGames = ['眼力極限考驗', '生活好時光', '24H 一日店長', '家事達人', '健康小學堂', '幸福柑仔店'];
   const sampleHistory = () => Array.from({ length: 100 }, (_, i) => ({ id: 'game-' + i, title: sampleGames[i % sampleGames.length], date: dateAgo(Math.floor(i * 89 / 99)), points: i % sampleGames.length === 5 ? 200 : 100, kind: '個人任務', completed:true }));
@@ -28,8 +29,20 @@
     taskClaimLedger: {},
     member: { isHappyGo: true, consent: false, gender: 'female' }
   });
+  function launchDemoState() {
+    const demo = fresh();
+    demo.group = { id: 'launch-family', name: '我們家的健康圈', nickname: '小晴', code: '00000', members: [
+      { name: '我', role: '圈主', avatarUrl: 'images/avatars/member-self.webp' },
+      { name: '媽媽', role: '成員', avatarUrl: 'images/avatars/member-mother.webp' }
+    ] };
+    demo.posts = [{ id: 'launch-welcome', author: '媽媽', time: '今天', createdAt: new Date().toISOString(), kind: '生活近況', text: '今天和家人聊了聊，心情很好。', comments: [], likes: 0 }];
+    demo.notifications = [demo.notifications[0]];
+    demo.gameHistory = [];
+    demo.guideMode = 'off';
+    return demo;
+  }
   let state;
-  try { state = Object.assign(fresh(), JSON.parse(sessionStorage.getItem(KEY) || '{}')); }
+  try { state = Object.assign(release.launch && release.demo ? launchDemoState() : fresh(), JSON.parse(sessionStorage.getItem(KEY) || '{}')); }
   catch (_) { state = fresh(); }
   const healthTypes = ['steps','sleep','heart','exercise','weight'];
   if (!Array.isArray(state.healthPreferences)) {
@@ -225,6 +238,7 @@
     return records;
   }
   async function syncHealthData() {
+    if (release.launch) return false;
     const run = ++healthSyncRun;
     const requested = [...state.healthPreferences];
     set(s => { s.healthSync = 'syncing'; });
@@ -270,11 +284,11 @@
     const earned = state.pointAwards.reduce((sum, item) => sum + Number(item.points || 0), 0);
     let used = 0;
     try {
-      const exchanges = JSON.parse(sessionStorage.getItem('gohealth_p2_exchanges') || '[]');
+      const exchanges = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_p2_exchanges')) || '[]');
       if (exchanges.length) used = exchanges.filter(x => x.status === 'success').reduce((sum, x) => sum + Number(x.healthPointsUsed || 0), 0);
-      else { const last = JSON.parse(sessionStorage.getItem('gohealth_latest_exchange') || 'null'); if (last?.status === 'success') used = Number(last.healthPointsUsed || 0); }
+      else { const last = JSON.parse(sessionStorage.getItem(window.GH_RELEASE.storageKey('gohealth_latest_exchange')) || 'null'); if (last?.status === 'success') used = Number(last.healthPointsUsed || 0); }
     } catch (_) {}
-    return 1200 + earned - used;
+    return (release.launch ? 0 : 1200) + earned - used;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
   document.addEventListener('error', event => {

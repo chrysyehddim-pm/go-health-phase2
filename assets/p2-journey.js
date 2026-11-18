@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const GH = window.GH;
-  if (!GH) return;
+  if (!GH || window.GH_RELEASE.launch || !window.GH_RELEASE.demo) return;
   const params = new URLSearchParams(location.search);
   // Standalone scenario checks must not inherit the journey's presentation controls.
   if(params.has('placeState')&&!params.has('journey')&&GH.state.journey){delete GH.state.journey;GH.save();}
